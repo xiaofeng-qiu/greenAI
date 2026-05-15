@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 940" font-family="-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f4f8;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#fff;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-opacity="0.06"/>
+    </filter>
+    <filter id="card-shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.04"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="940" rx="16" fill="url(#g1)" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="450" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#1a202c">系统架构图</text>
+  <text x="450" y="62" text-anchor="middle" font-size="12" fill="#718096">智能植物养护平台 — 整体技术架构</text>
+
+  <!-- ============ Layer 1: 用户层 ============ -->
+  <rect x="30" y="82" width="840" height="110" rx="12" fill="#ebf8ff" stroke="#90cdf4" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="48" y="106" font-size="13" font-weight="700" fill="#2b6cb0">一、用户层 (C 端入口)</text>
+
+  <!-- 4 cards -->
+  <rect x="52" y="118" width="190" height="60" rx="10" fill="#fff" stroke="#bee3f8" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="78" y="153" font-size="22">💬</text>
+  <text x="110" y="146" font-size="13" font-weight="600" fill="#2d3748">微信小程序</text>
+  <text x="110" y="163" font-size="10" fill="#718096">主入口 · 轻量分享</text>
+
+  <rect x="252" y="118" width="190" height="60" rx="10" fill="#fff" stroke="#bee3f8" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="278" y="153" font-size="22">📱</text>
+  <text x="310" y="146" font-size="13" font-weight="600" fill="#2d3748">iOS App</text>
+  <text x="310" y="163" font-size="10" fill="#718096">原生体验 · 推送通知</text>
+
+  <rect x="452" y="118" width="190" height="60" rx="10" fill="#fff" stroke="#bee3f8" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="478" y="153" font-size="22">🤖</text>
+  <text x="510" y="146" font-size="13" font-weight="600" fill="#2d3748">Android App</text>
+  <text x="510" y="163" font-size="10" fill="#718096">机型覆盖 · 后台守护</text>
+
+  <rect x="652" y="118" width="196" height="60" rx="10" fill="#fff" stroke="#bee3f8" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="678" y="153" font-size="22">🌐</text>
+  <text x="710" y="146" font-size="13" font-weight="600" fill="#2d3748">Web 端</text>
+  <text x="710" y="163" font-size="10" fill="#718096">管理后台 · 大屏看板</text>
+
+  <!-- Arrow L1 -> L2 -->
+  <line x1="450" y1="192" x2="450" y2="216" stroke="#a0aec0" stroke-width="2"/>
+  <polygon points="444,214 450,224 456,214" fill="#a0aec0"/>
+  <rect x="370" y="198" width="160" height="18" rx="9" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="450" y="211" text-anchor="middle" font-size="10" fill="#718096">HTTPS · OAuth / JWT</text>
+
+  <!-- ============ Layer 2: 服务层 ============ -->
+  <rect x="30" y="232" width="840" height="200" rx="12" fill="#fffff0" stroke="#f6e05e" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="48" y="256" font-size="13" font-weight="700" fill="#975a16">二、服务层 (API Gateway · 微服务)</text>
+
+  <!-- Row 1: 5 services -->
+  <rect x="52" y="270" width="156" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="130" y="294" text-anchor="middle" font-size="20">🔐</text>
+  <text x="130" y="313" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">认证服务</text>
+  <text x="130" y="327" text-anchor="middle" font-size="9" fill="#718096">JWT · 第三方登录</text>
+
+  <rect x="216" y="270" width="156" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="294" y="294" text-anchor="middle" font-size="20">👤</text>
+  <text x="294" y="313" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">用户服务</text>
+  <text x="294" y="327" text-anchor="middle" font-size="9" fill="#718096">资料 · 等级 · 偏好</text>
+
+  <rect x="380" y="270" width="156" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="458" y="294" text-anchor="middle" font-size="20">🌿</text>
+  <text x="458" y="313" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">植物服务</text>
+  <text x="458" y="327" text-anchor="middle" font-size="9" fill="#718096">档案 · 养护计划</text>
+
+  <rect x="544" y="270" width="156" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="622" y="294" text-anchor="middle" font-size="20">⏰</text>
+  <text x="622" y="313" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">提醒服务</text>
+  <text x="622" y="327" text-anchor="middle" font-size="9" fill="#718096">浇水/施肥推送</text>
+
+  <rect x="708" y="270" width="156" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="786" y="294" text-anchor="middle" font-size="20">🩺</text>
+  <text x="786" y="313" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">诊断服务</text>
+  <text x="786" y="327" text-anchor="middle" font-size="9" fill="#718096">病害识别 · 处方</text>
+
+  <!-- Row 2: 4 services -->
+  <rect x="52" y="346" width="194" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="149" y="370" text-anchor="middle" font-size="20">🌤️</text>
+  <text x="149" y="389" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">天气服务</text>
+  <text x="149" y="403" text-anchor="middle" font-size="9" fill="#718096">温湿度 · 光照预测</text>
+
+  <rect x="254" y="346" width="194" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="351" y="370" text-anchor="middle" font-size="20">📡</text>
+  <text x="351" y="389" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">设备服务</text>
+  <text x="351" y="403" text-anchor="middle" font-size="9" fill="#718096">智能花盆接入 (v2)</text>
+
+  <rect x="456" y="346" width="194" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="553" y="370" text-anchor="middle" font-size="20">📚</text>
+  <text x="553" y="389" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">内容服务</text>
+  <text x="553" y="403" text-anchor="middle" font-size="9" fill="#718096">百科 · 社区 · 帖子</text>
+
+  <rect x="658" y="346" width="206" height="64" rx="10" fill="#fff" stroke="#f6e05e" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="761" y="370" text-anchor="middle" font-size="20">💳</text>
+  <text x="761" y="389" text-anchor="middle" font-size="12" font-weight="600" fill="#2d3748">支付服务</text>
+  <text x="761" y="403" text-anchor="middle" font-size="9" fill="#718096">微信/支付宝 · 订单</text>
+
+  <!-- Arrow L2 -> L3 (3 branches) -->
+  <line x1="450" y1="432" x2="450" y2="450" stroke="#a0aec0" stroke-width="2"/>
+  <line x1="180" y1="450" x2="720" y2="450" stroke="#a0aec0" stroke-width="2"/>
+  <line x1="180" y1="450" x2="180" y2="468" stroke="#a0aec0" stroke-width="2"/>
+  <line x1="450" y1="450" x2="450" y2="468" stroke="#a0aec0" stroke-width="2"/>
+  <line x1="720" y1="450" x2="720" y2="468" stroke="#a0aec0" stroke-width="2"/>
+  <polygon points="174,466 180,476 186,466" fill="#a0aec0"/>
+  <polygon points="444,466 450,476 456,466" fill="#a0aec0"/>
+  <polygon points="714,466 720,476 726,466" fill="#a0aec0"/>
+
+  <!-- ============ Layer 3: 数据层 ============ -->
+  <rect x="30" y="484" width="840" height="110" rx="12" fill="#f0fff4" stroke="#9ae6b4" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="48" y="508" font-size="13" font-weight="700" fill="#276749">三、数据层 (Persistence)</text>
+
+  <rect x="52" y="520" width="252" height="60" rx="10" fill="#fff" stroke="#9ae6b4" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="82" y="555" font-size="22">🗄️</text>
+  <text x="118" y="546" font-size="13" font-weight="600" fill="#2d3748">MySQL</text>
+  <text x="118" y="563" font-size="10" fill="#718096">业务数据 · 用户/植物/订单</text>
+
+  <rect x="324" y="520" width="252" height="60" rx="10" fill="#fff" stroke="#9ae6b4" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="354" y="555" font-size="22">⚡</text>
+  <text x="390" y="546" font-size="13" font-weight="600" fill="#2d3748">Redis</text>
+  <text x="390" y="563" font-size="10" fill="#718096">缓存 · 会话 · 提醒队列</text>
+
+  <rect x="596" y="520" width="252" height="60" rx="10" fill="#fff" stroke="#9ae6b4" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="626" y="555" font-size="22">🪣</text>
+  <text x="662" y="546" font-size="13" font-weight="600" fill="#2d3748">对象存储</text>
+  <text x="662" y="563" font-size="10" fill="#718096">图片 / 语音 / 视频</text>
+
+  <!-- Arrow L3 -> L4 -->
+  <line x1="450" y1="594" x2="450" y2="618" stroke="#a0aec0" stroke-width="2"/>
+  <polygon points="444,616 450,626 456,616" fill="#a0aec0"/>
+  <rect x="378" y="600" width="144" height="18" rx="9" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="450" y="613" text-anchor="middle" font-size="10" fill="#718096">异步任务 · 数据回流</text>
+
+  <!-- ============ Layer 4: AI 能力层 ============ -->
+  <rect x="30" y="634" width="840" height="110" rx="12" fill="#faf5ff" stroke="#d6bcfa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="48" y="658" font-size="13" font-weight="700" fill="#6b46c1">四、AI 能力层 (Intelligence)</text>
+
+  <rect x="52" y="670" width="190" height="60" rx="10" fill="#fff" stroke="#d6bcfa" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="78" y="705" font-size="22">🌱</text>
+  <text x="110" y="697" font-size="12" font-weight="600" fill="#2d3748">植物识别 API</text>
+  <text x="110" y="713" font-size="9" fill="#718096">百度 / 阿里视觉</text>
+
+  <rect x="252" y="670" width="190" height="60" rx="10" fill="#fff" stroke="#d6bcfa" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="278" y="705" font-size="22">🦠</text>
+  <text x="310" y="697" font-size="12" font-weight="600" fill="#2d3748">病害识别 API</text>
+  <text x="310" y="713" font-size="9" fill="#718096">EasyDL 自训练</text>
+
+  <rect x="452" y="670" width="190" height="60" rx="10" fill="#fff" stroke="#d6bcfa" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="478" y="705" font-size="22">💭</text>
+  <text x="510" y="697" font-size="12" font-weight="600" fill="#2d3748">大模型对话</text>
+  <text x="510" y="713" font-size="9" fill="#718096">通义千问 / 文心</text>
+
+  <rect x="652" y="670" width="196" height="60" rx="10" fill="#fff" stroke="#d6bcfa" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="678" y="705" font-size="22">📋</text>
+  <text x="710" y="697" font-size="12" font-weight="600" fill="#2d3748">养护建议生成</text>
+  <text x="710" y="713" font-size="9" fill="#718096">规则引擎 + AI 个性化</text>
+
+  <!-- Arrow L4 -> L5 -->
+  <line x1="450" y1="744" x2="450" y2="768" stroke="#a0aec0" stroke-width="2" stroke-dasharray="4 3"/>
+  <polygon points="444,766 450,776 456,766" fill="#a0aec0"/>
+  <rect x="358" y="750" width="184" height="18" rx="9" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="450" y="763" text-anchor="middle" font-size="10" fill="#718096">v2.0+ · 数据回流模型迭代</text>
+
+  <!-- ============ Layer 5: 硬件层 ============ -->
+  <rect x="30" y="784" width="840" height="120" rx="12" fill="#fff5f5" stroke="#feb2b2" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="48" y="808" font-size="13" font-weight="700" fill="#9b2c2c">五、硬件层 (IoT · v2.0+)</text>
+
+  <rect x="52" y="820" width="220" height="72" rx="10" fill="#fff" stroke="#feb2b2" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="162" y="847" text-anchor="middle" font-size="22">🪴</text>
+  <text x="162" y="867" text-anchor="middle" font-size="13" font-weight="600" fill="#2d3748">智能花盆 (ESP32)</text>
+  <text x="162" y="881" text-anchor="middle" font-size="9" fill="#718096">主控 · WiFi/蓝牙 · OTA</text>
+
+  <!-- Arrow connector -->
+  <line x1="272" y1="856" x2="316" y2="856" stroke="#a0aec0" stroke-width="2"/>
+  <polygon points="314,850 324,856 314,862" fill="#a0aec0"/>
+  <text x="294" y="848" text-anchor="middle" font-size="9" fill="#718096">采集</text>
+
+  <rect x="328" y="820" width="220" height="72" rx="10" fill="#fff" stroke="#feb2b2" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="438" y="847" text-anchor="middle" font-size="22">🌡️</text>
+  <text x="438" y="867" text-anchor="middle" font-size="13" font-weight="600" fill="#2d3748">环境传感器组</text>
+  <text x="438" y="881" text-anchor="middle" font-size="9" fill="#718096">土壤湿度 · 温湿度 · 光照</text>
+
+  <!-- Arrow connector -->
+  <line x1="548" y1="856" x2="592" y2="856" stroke="#a0aec0" stroke-width="2"/>
+  <polygon points="590,850 600,856 590,862" fill="#a0aec0"/>
+  <text x="570" y="848" text-anchor="middle" font-size="9" fill="#718096">上报</text>
+
+  <rect x="604" y="820" width="244" height="72" rx="10" fill="#fff" stroke="#feb2b2" stroke-width="1.5" filter="url(#card-shadow)"/>
+  <text x="726" y="847" text-anchor="middle" font-size="22">🎯</text>
+  <text x="726" y="867" text-anchor="middle" font-size="13" font-weight="600" fill="#2d3748">精准养护建议</text>
+  <text x="726" y="881" text-anchor="middle" font-size="9" fill="#718096">实时数据 → 服务层 → 推送主人</text>
+
+  <!-- Footer -->
+  <text x="450" y="924" text-anchor="middle" font-size="10" fill="#a0aec0">数据流：用户输入 ↓ 服务编排 ↔ 持久化 ↔ AI 推理 ↻ 设备闭环</text>
+</svg>
