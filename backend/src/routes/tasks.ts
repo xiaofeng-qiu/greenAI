@@ -40,6 +40,8 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
     if (!task || !task.plant.carePlan)
       return reply.status(404).send({ error: "not_found" });
 
+    req.log = req.log.child({ taskId: id, plantId: task.plantId });
+
     await app.prisma.careTask.update({
       where: { id },
       data: { status: CareTaskStatus.completed },
@@ -102,6 +104,8 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       where: { id, plant: { userId: req.userId! } },
     });
     if (!task) return reply.status(404).send({ error: "not_found" });
+
+    req.log = req.log.child({ taskId: id, plantId: task.plantId });
 
     const bump = new Date(task.dueDate);
     bump.setUTCDate(bump.getUTCDate() + 2);

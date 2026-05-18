@@ -1,4 +1,8 @@
-const { request } = require("../../utils/api.js");
+const {
+  request,
+  SUBSCRIBE_TEMPLATE_ID,
+  reportSubscribeFromWxResult,
+} = require("../../utils/api.js");
 
 const WATER_RANGE = ["low", "medium", "high"];
 const WATER_LABELS = ["低", "中", "高"];
@@ -108,8 +112,18 @@ Page({
           data: body,
         });
       }
-      wx.showToast({ title: "已保存" });
-      wx.navigateBack();
+      wx.showToast({ title: "已保存", icon: "success" });
+      wx.requestSubscribeMessage({
+        tmplIds: [SUBSCRIBE_TEMPLATE_ID],
+        success: async (res) => {
+          try {
+            await reportSubscribeFromWxResult(res);
+          } catch (_) {
+            /* quota sync is best-effort */
+          }
+        },
+        complete: () => wx.navigateBack(),
+      });
     } catch (e) {
       wx.showToast({ title: "保存失败", icon: "none" });
     }

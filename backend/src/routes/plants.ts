@@ -69,6 +69,8 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    req.log = req.log.child({ plantId: plant.id });
+
     const asOf = new Date();
     const generated = generateWaterTasks({
       asOf,

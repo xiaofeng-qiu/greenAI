@@ -1,0 +1,8 @@
+{
+  "name": "greenai",
+  "private": true,
+  "scripts": {
+    "verify:backend": "npm run build --prefix backend && npm run test --prefix backend",
+    "ship": "node scripts/ship.mjs"
+  }
+}

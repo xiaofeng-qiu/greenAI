@@ -1,0 +1,17 @@
+---
+description: After coding tasks, run backend verify then commit and push if green
+alwaysApply: true
+---
+
+# greenAI：验证通过后提交并推送
+
+当在本仓库中**完成一项实现或修复**（涉及 `backend/`、`miniprogram/`、`.github/` 等）时：
+
+1. 在仓库根目录执行 **`npm run verify:backend`**（等价于 `backend` 下 `npm run build` 与 `npm run test`）。
+2. 若命令**成功**且工作区有未提交变更：按仓库既有风格撰写 **单行 `feat:` / `fix:` / `ci:` / `chore:`** 等说明，然后执行  
+   **`npm run ship -- "type: 简要说明"`**（由脚本完成 `git add`、commit、push）。  
+   提交说明用英文或中文均可，与历史提交保持一致即可。
+3. 若验证**失败**：先修复问题，**不要** commit/push。
+4. 若用户**明确说不要提交/不要推送**：只跑验证，不执行 `ship`。
+
+用户已要求：验证通过且任务完成时**自动**走提交流程；除非用户临时禁止，否则应在同一会话内执行 `ship`。

@@ -1,4 +1,8 @@
-const { request } = require("../../utils/api.js");
+const {
+  request,
+  SUBSCRIBE_TEMPLATE_ID,
+  reportSubscribeFromWxResult,
+} = require("../../utils/api.js");
 
 Page({
   data: { tasks: [] },
@@ -26,17 +30,15 @@ Page({
     this.loadTasks();
   },
   async onSubscribe() {
-    const tmplId = "YOUR_TEMPLATE_ID";
     wx.requestSubscribeMessage({
-      tmplIds: [tmplId],
+      tmplIds: [SUBSCRIBE_TEMPLATE_ID],
       success: async (res) => {
-        const accept = res[tmplId] === "accept" ? 1 : 0;
-        await request({
-          path: "/subscribe/report",
-          method: "POST",
-          data: { templateId: tmplId, acceptCount: accept },
-        });
-        wx.showToast({ title: "已更新提醒额度" });
+        try {
+          await reportSubscribeFromWxResult(res);
+          wx.showToast({ title: "已更新提醒额度" });
+        } catch (_) {
+          wx.showToast({ title: "上报失败", icon: "none" });
+        }
       },
     });
   },
