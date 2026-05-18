@@ -1,5 +1,37 @@
 <view class="page">
-  <text class="intro">勾选符合的症状（可多选）。结果为常见园艺规则提示，不能替代专家实地诊断。</text>
+  <text class="intro">可先勾选症状做规则参考，或使用下方「拍照 AI 诊断」（需服务端配置大模型 API）。两类结果均有免责说明。</text>
+
+  <view wx:if="{{llmDiagnoseEnabled}}" class="llm-block">
+    <text class="field-label">拍照 AI 诊断</text>
+    <text class="photo-hint">{{llmImageLabel}}</text>
+    <view class="llm-actions">
+      <button size="mini" type="primary" bindtap="onPickImage">选择/拍摄照片</button>
+      <button size="mini" bindtap="onSubmitLlm" disabled="{{!llmImageBase64}}">提交 AI 分析</button>
+    </view>
+    <view class="field">
+      <text class="field-label">文字补充（可选）</text>
+      <textarea class="textarea-note" placeholder="例如：最近两周浇水频率、是否施肥、是否换盆等" value="{{userNote}}" maxlength="800" bindinput="onUserNoteInput" />
+    </view>
+  </view>
+  <view wx:else class="muted">当前未启用视觉大模型诊断（服务器未配置 DIAGNOSE_LLM_API_KEY）。仍可使用下方规则诊断。</view>
+
+  <view wx:if="{{llmResult && llmResult.diagnosis}}" class="llm-result">
+    <text class="llm-result-title">AI 参考结论</text>
+    <text class="cause-summary">{{llmResult.diagnosis.summary}}</text>
+    <block wx:for="{{llmResult.diagnosis.likely_issues}}" wx:for-item="iss" wx:for-index="ix" wx:key="ix">
+      <view class="llm-issue">
+        <text class="llm-issue-title">{{iss.title}}</text>
+        <text class="llm-issue-detail">{{iss.detail}}</text>
+      </view>
+    </block>
+    <text class="field-label" style="margin-top:16rpx">建议措施</text>
+    <block wx:for="{{llmResult.diagnosis.immediate_actions}}" wx:key="*this">
+      <text class="action-item">· {{item}}</text>
+    </block>
+    <text wx:if="{{llmResult.diagnosis.caution}}" class="context-tip" style="margin-top:16rpx">{{llmResult.diagnosis.caution}}</text>
+    <text wx:if="{{llmResult.diagnosis.needs_expert_visit}}" class="context-tip">建议尽快携带样本或照片咨询线下园艺/植保人员。</text>
+    <text class="disclaimer" style="margin-top:16rpx">{{llmResult.disclaimer}}</text>
+  </view>
 
   <view class="field">
     <text class="field-label">关联植物（可选，用于参考室内/供暖）</text>

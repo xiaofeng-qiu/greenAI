@@ -229,8 +229,13 @@ const RULES: Rule[] = [
   },
 ];
 
-const DISCLAIMER =
+/** 规则诊断与 LLM 诊断共用免责说明（产品文案）。 */
+export const DIAGNOSE_DISCLAIMER =
   "本结果为基于常见园艺症状的规则性提示，不能替代实地检疫、实验室检测或专业人员诊断；若植株快速恶化，建议拍照咨询本地园艺店或植保部门。";
+
+/** 追加在 LLM 视觉诊断结果中的补充免责（与 {@link DIAGNOSE_DISCLAIMER} 连用）。 */
+export const DIAGNOSE_LLM_EXTRA_DISCLAIMER =
+  "以下为视觉大模型生成的参考意见，可能存在不完整或误判；涉及用药、浓度与安全时，请以产品标签与当地法规为准，必要时咨询线下植保或园艺师。";
 
 export function listSymptomCatalog(): SymptomCatalogItem[] {
   return CATALOG.slice();
@@ -295,5 +300,5 @@ export function diagnoseFromSymptoms(
     });
   }
 
-  return { causes, contextTips, disclaimer: DISCLAIMER };
+  return { causes, contextTips, disclaimer: DIAGNOSE_DISCLAIMER };
 }

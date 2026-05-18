@@ -113,3 +113,78 @@
   line-height: 1.5;
   margin-top: 16rpx;
 }
+
+.textarea-note {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  background: #fafafa;
+  border-radius: 10rpx;
+  border: 1rpx solid #e0e0e0;
+  margin-top: 8rpx;
+}
+
+.llm-block {
+  margin-bottom: 36rpx;
+  padding-bottom: 28rpx;
+  border-bottom: 2rpx solid #e8e8e8;
+}
+
+.photo-hint {
+  font-size: 24rpx;
+  color: #888;
+  margin: 8rpx 0 12rpx;
+  display: block;
+}
+
+.muted {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+  line-height: 1.5;
+}
+
+.llm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  align-items: center;
+}
+
+.llm-result {
+  margin-top: 28rpx;
+  margin-bottom: 28rpx;
+  padding: 20rpx;
+  background: #fff8e1;
+  border-radius: 12rpx;
+  border: 1rpx solid #ffcc80;
+}
+
+.llm-result-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #e65100;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.llm-issue {
+  margin-bottom: 16rpx;
+}
+
+.llm-issue-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.llm-issue-detail {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.45;
+  display: block;
+}

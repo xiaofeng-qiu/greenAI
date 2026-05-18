@@ -30,6 +30,11 @@ Page({
     selectedIds: [],
     submitDisabled: true,
     result: null,
+    llmDiagnoseEnabled: false,
+    llmImageBase64: "",
+    llmImageLabel: "未选择照片",
+    userNote: "",
+    llmResult: null,
   },
   async onLoad() {
     await Promise.all([this.loadCatalog(), this.loadPlants()]);
@@ -38,8 +43,9 @@ Page({
     try {
       const data = await request({ path: "/diagnose/catalog", method: "GET" });
       const list = (data && data.symptoms) || [];
+      const llmDiagnoseEnabled = Boolean(data && data.llmDiagnoseEnabled);
       const symptomGroups = groupSymptoms(list);
-      this.setData({ symptomGroups });
+      this.setData({ symptomGroups, llmDiagnoseEnabled });
     } catch (e) {
       wx.showToast({ title: "加载症状失败", icon: "none" });
     }
@@ -68,6 +74,71 @@ Page({
       symptomGroups,
       submitDisabled: selectedIds.length === 0,
     });
+  },
+  onUserNoteInput(e) {
+    this.setData({ userNote: e.detail.value });
+  },
+  onPickImage() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ["image"],
+      sourceType: ["album", "camera"],
+      success: (pick) => {
+        const path = pick.tempFiles[0].tempFilePath;
+        const fs = wx.getFileSystemManager();
+        fs.readFile({
+          filePath: path,
+          encoding: "base64",
+          success: (fileRes) => {
+            this.setData({
+              llmImageBase64: fileRes.data,
+              llmImageLabel: "已选择照片，可提交 AI 分析",
+            });
+          },
+          fail: () => {
+            wx.showToast({ title: "读取图片失败", icon: "none" });
+          },
+        });
+      },
+      fail: () => {
+        wx.showToast({ title: "未选择图片", icon: "none" });
+      },
+    });
+  },
+  async onSubmitLlm() {
+    const {
+      llmImageBase64,
+      selectedIds,
+      plantIds,
+      plantPickerIndex,
+      userNote,
+    } = this.data;
+    if (!llmImageBase64 || String(llmImageBase64).length < 80) {
+      wx.showToast({ title: "请先选择清晰照片", icon: "none" });
+      return;
+    }
+    const plantId = plantIds[plantPickerIndex] || undefined;
+    const body = { imageBase64: llmImageBase64 };
+    const note = (userNote || "").trim();
+    if (note) body.userNote = note;
+    if (selectedIds && selectedIds.length) body.symptomIds = selectedIds;
+    if (plantId) body.plantId = plantId;
+    wx.showLoading({ title: "AI 分析中", mask: true });
+    try {
+      const llmResult = await request({
+        path: "/diagnose/llm",
+        method: "POST",
+        data: body,
+      });
+      this.setData({ llmResult });
+    } catch (e) {
+      const code = e && e.statusCode;
+      const msg =
+        code === 503 ? "未启用 AI 诊断" : code === 502 ? "AI 服务异常" : "AI 请求失败";
+      wx.showToast({ title: msg, icon: "none" });
+    } finally {
+      wx.hideLoading();
+    }
   },
   async onSubmit() {
     const { selectedIds, plantIds, plantPickerIndex } = this.data;
