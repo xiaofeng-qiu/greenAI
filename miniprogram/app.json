@@ -2,7 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/plants/plants",
-    "pages/plant-edit/plant-edit"
+    "pages/plant-edit/plant-edit",
+    "pages/settings/settings"
   ],
   "window": {
     "navigationBarTitleText": "植物管家"

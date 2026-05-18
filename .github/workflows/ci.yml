@@ -99,6 +99,7 @@ jobs:
             'miniprogram/app.json',
             'miniprogram/pages/index/index.json',
             'miniprogram/pages/plants/plants.json',
+            'miniprogram/pages/settings/settings.json',
             'miniprogram/pages/plant-edit/plant-edit.json',
             'miniprogram/project.config.json',
             'miniprogram/sitemap.json',

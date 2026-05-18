@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="field">
+    <text class="label">时区（影响「今日任务」按哪天算）</text>
+    <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
+      <view class="picker-value">{{labels[tzIndex]}}</view>
+    </picker>
+  </view>
+  <button class="save" type="primary" bindtap="onSave">保存</button>
+</view>

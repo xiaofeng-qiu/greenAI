@@ -1,0 +1,26 @@
+.page {
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.field {
+  margin-bottom: 32rpx;
+}
+
+.label {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.picker-value {
+  padding: 16rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.save {
+  margin-top: 24rpx;
+}
