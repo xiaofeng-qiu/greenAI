@@ -17,12 +17,27 @@ function locSummary(me) {
   return `${Number(me.latitude).toFixed(4)}, ${Number(me.longitude).toFixed(4)}`;
 }
 
+function formatForecastDay(d) {
+  const lo = Math.round(d.tempMinC);
+  const hi = Math.round(d.tempMaxC);
+  const parts = [`${d.date}`, `${lo}–${hi}°C`];
+  if (d.precipitationProbabilityMax != null) {
+    parts.push(`降雨概率${d.precipitationProbabilityMax}%`);
+  }
+  if (d.precipitationSumMm != null && d.precipitationSumMm > 0.05) {
+    parts.push(`降水约${d.precipitationSumMm}mm`);
+  }
+  return parts.join(" · ");
+}
+
 Page({
   data: {
     labels: [...ZONES],
     tzIndex: 0,
     locSummary: "",
     weatherLine: "",
+    forecastHint: "",
+    forecastDays: [],
   },
   async onShow() {
     await this.loadMeAndWeather();
@@ -42,6 +57,8 @@ Page({
         tzIndex: idx,
         locSummary: locSummary(me),
         weatherLine: "",
+        forecastHint: "",
+        forecastDays: [],
       });
       if (me.latitude != null && me.longitude != null) {
         try {
@@ -52,8 +69,27 @@ Page({
         } catch (e) {
           this.setData({ weatherLine: "天气暂不可用" });
         }
+        try {
+          const fc = await request({ path: "/weather/forecast", method: "GET" });
+          const raw = (fc && fc.days) || [];
+          const forecastDays = raw.map((d) => ({
+            date: d.date,
+            line: formatForecastDay(d),
+          }));
+          let forecastHint = "";
+          if (raw.some((d) => (d.precipitationProbabilityMax ?? 0) >= 60)) {
+            forecastHint = "未来三天内可能有明显降水，浇水可适当保守。";
+          } else if (raw.some((d) => (d.precipitationSumMm ?? 0) > 2)) {
+            forecastHint = "预报中有较大降水日，注意盆底排水与通风。";
+          }
+          this.setData({ forecastDays, forecastHint });
+        } catch (e) {
+          this.setData({ forecastDays: [], forecastHint: "" });
+        }
       } else {
-        this.setData({ weatherLine: "设置位置后可查看当前天气（Open-Meteo）" });
+        this.setData({
+          weatherLine: "设置位置后可查看当前天气与预报（Open-Meteo）",
+        });
       }
     } catch (e) {
       wx.showToast({ title: "加载失败", icon: "none" });
@@ -71,6 +107,7 @@ Page({
         data: { timezone: tz },
       });
       wx.showToast({ title: "已保存" });
+      this.loadMeAndWeather();
     } catch (e) {
       wx.showToast({ title: "保存失败", icon: "none" });
     }

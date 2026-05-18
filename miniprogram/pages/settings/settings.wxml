@@ -7,12 +7,17 @@
   </view>
   <button class="save" type="primary" bindtap="onSave">保存时区</button>
 
-  <view class="section-title">天气（P2 · Open-Meteo，免密钥）</view>
+  <view class="section-title">天气（P3 · Open-Meteo，免密钥）</view>
   <view class="field">
     <text class="label">已保存位置（WGS84）</text>
     <text class="mono">{{locSummary}}</text>
   </view>
   <view class="weather-line">{{weatherLine}}</view>
+  <view wx:if="{{forecastHint}}" class="forecast-hint">{{forecastHint}}</view>
+  <view wx:if="{{forecastDays.length}}" class="forecast-title">未来 3 天预报（按已保存时区）</view>
+  <block wx:for="{{forecastDays}}" wx:key="date">
+    <text class="forecast-row">{{item.line}}</text>
+  </block>
   <view class="row-btns">
     <button size="mini" type="primary" bindtap="onPickLocation">使用当前定位</button>
     <button size="mini" bindtap="onClearLocation">清除位置</button>
