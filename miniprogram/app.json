@@ -5,7 +5,8 @@
     "pages/plant-edit/plant-edit",
     "pages/settings/settings",
     "pages/discover/discover",
-    "pages/discover-detail/discover-detail"
+    "pages/discover-detail/discover-detail",
+    "pages/diagnose/diagnose"
   ],
   "window": {
     "navigationBarTitleText": "植物管家"

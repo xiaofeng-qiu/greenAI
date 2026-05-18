@@ -48,6 +48,9 @@ Page({
   goDiscover() {
     wx.navigateTo({ url: "/pages/discover/discover" });
   },
+  goDiagnose() {
+    wx.navigateTo({ url: "/pages/diagnose/diagnose" });
+  },
   goPlants() {
     wx.navigateTo({ url: "/pages/plants/plants" });
   },

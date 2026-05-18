@@ -1,0 +1,38 @@
+<view class="page">
+  <text class="intro">勾选符合的症状（可多选）。结果为常见园艺规则提示，不能替代专家实地诊断。</text>
+
+  <view class="field">
+    <text class="field-label">关联植物（可选，用于参考室内/供暖）</text>
+    <picker mode="selector" range="{{plantLabels}}" value="{{plantPickerIndex}}" bindchange="onPlantPickerChange">
+      <view class="picker-value">{{plantLabels[plantPickerIndex]}}</view>
+    </picker>
+  </view>
+
+  <checkbox-group bindchange="onSymptomChange">
+    <block wx:for="{{symptomGroups}}" wx:key="group">
+      <text class="group-title">{{item.group}}</text>
+      <label wx:for="{{item.items}}" wx:for-item="sym" wx:key="id" class="symptom-row">
+        <checkbox value="{{sym.id}}" checked="{{sym.checked}}" />
+        <text class="symptom-text">{{sym.label}}</text>
+      </label>
+    </block>
+  </checkbox-group>
+
+  <button class="submit" type="primary" bindtap="onSubmit" disabled="{{submitDisabled}}">生成参考意见</button>
+
+  <view wx:if="{{result}}" class="result">
+    <block wx:for="{{result.causes}}" wx:key="id">
+      <view class="cause-card">
+        <text class="cause-title">{{item.title}}</text>
+        <text class="cause-summary">{{item.summary}}</text>
+        <block wx:for="{{item.actions}}" wx:for-item="act" wx:key="*this">
+          <text class="action-item">· {{act}}</text>
+        </block>
+      </view>
+    </block>
+    <block wx:for="{{result.contextTips}}" wx:key="*this">
+      <view class="context-tip">{{item}}</view>
+    </block>
+    <text class="disclaimer">{{result.disclaimer}}</text>
+  </view>
+</view>
