@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (test & build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: greenai_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d greenai_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greenai_ci
+      JWT_SECRET: ci-jwt-secret-at-least-16-chars
+      WECHAT_APPID: ci_appid
+      WECHAT_SECRET: ci_secret
+      CRON_HMAC_SECRET: ci-cron-hmac-secret-16+
+      SUBSCRIBE_TEMPLATE_ID: ci_template_id
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Sync database schema (until committed migrations exist)
+        run: npx prisma db push
+
+      - name: Run tests
+        run: npm run test
+
+      - name: TypeScript build
+        run: npm run build
+
+      - name: npm audit (informational)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  docker-compose:
+    name: Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose -f docker-compose.yml config --quiet
+
+  miniprogram-json:
+    name: Miniprogram JSON
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON config files
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const paths = [
+            'miniprogram/app.json',
+            'miniprogram/pages/index/index.json',
+            'miniprogram/pages/plant-edit/plant-edit.json',
+            'miniprogram/project.config.json',
+            'miniprogram/sitemap.json',
+          ];
+          for (const p of paths) {
+            JSON.parse(fs.readFileSync(p, 'utf8'));
+            console.log('OK', p);
+          }
+          NODE
+
+  ci-success:
+    name: CI (all required checks)
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [backend, docker-compose, miniprogram-json]
+    steps:
+      - name: Require all jobs successful
+        run: |
+          test "${{ needs.backend.result }}" = "success"
+          test "${{ needs.docker-compose.result }}" = "success"
+          test "${{ needs.miniprogram-json.result }}" = "success"
