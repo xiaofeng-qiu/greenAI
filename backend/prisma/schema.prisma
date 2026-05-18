@@ -19,6 +19,14 @@ enum LightLevel {
   high
 }
 
+enum SoilMoistureHint {
+  very_wet
+  wet
+  moderate
+  dry
+  very_dry
+}
+
 enum CareTaskType {
   water
   fertilize
@@ -51,6 +59,8 @@ model Plant {
   indoor          Boolean
   heating         Boolean
   lightLevel      LightLevel
+  /// User self-report soil dryness; nudges watering interval in the care engine.
+  soilMoistureHint SoilMoistureHint?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   carePlan        CarePlan?

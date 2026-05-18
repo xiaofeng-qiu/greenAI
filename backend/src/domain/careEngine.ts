@@ -1,5 +1,11 @@
 export type WaterPreference = "low" | "medium" | "high";
 export type LightLevel = "low" | "medium" | "high";
+export type SoilMoistureHint =
+  | "very_wet"
+  | "wet"
+  | "moderate"
+  | "dry"
+  | "very_dry";
 
 /** Current outdoor-ish conditions (e.g. from Open-Meteo). Used only to nudge watering cadence. */
 export type WeatherSnapshot = {
@@ -11,6 +17,8 @@ export type PlantEnv = {
   indoor: boolean;
   heating: boolean;
   lightLevel: LightLevel;
+  /** User self-report: how dry the soil feels; nudges watering interval only. */
+  soilMoistureHint?: SoilMoistureHint | null;
 };
 
 const BASE_DAYS: Record<WaterPreference, number> = {
@@ -18,6 +26,22 @@ const BASE_DAYS: Record<WaterPreference, number> = {
   medium: 7,
   high: 4,
 };
+
+const SOIL_INTERVAL_MULT: Record<SoilMoistureHint, number> = {
+  very_wet: 1.12,
+  wet: 1.06,
+  moderate: 1,
+  dry: 0.92,
+  very_dry: 0.86,
+};
+
+/** Multiplier on interval days from self-reported soil moisture (wetter → longer interval). */
+export function soilMoistureIntervalMultiplier(
+  hint: SoilMoistureHint | null | undefined
+): number {
+  if (!hint) return 1;
+  return SOIL_INTERVAL_MULT[hint];
+}
 
 export function computeWaterIntervalDays(
   preference: WaterPreference,
@@ -28,7 +52,9 @@ export function computeWaterIntervalDays(
   if (env.heating) days *= 0.9;
   if (env.lightLevel === "high") days *= 0.95;
   if (env.lightLevel === "low") days *= 1.05;
-  return Math.max(2, Math.floor(days));
+  days = Math.max(2, Math.floor(days));
+  const soil = soilMoistureIntervalMultiplier(env.soilMoistureHint ?? null);
+  return Math.max(2, Math.floor(days * soil));
 }
 
 /** Multiplier applied to *interval days*; values < 1 mean water more often (shorter interval). */

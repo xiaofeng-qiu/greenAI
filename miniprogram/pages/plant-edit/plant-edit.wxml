@@ -34,5 +34,12 @@
     </picker>
   </view>
 
+  <view class="field">
+    <text class="field-label">盆土干湿（自评）</text>
+    <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
+      <view class="picker-value">{{soilLabels[soilIndex]}}</view>
+    </picker>
+  </view>
+
   <button class="submit" type="primary" bindtap="onSubmit">{{submitLabel}}</button>
 </view>

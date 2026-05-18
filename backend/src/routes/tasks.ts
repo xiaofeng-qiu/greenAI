@@ -53,6 +53,7 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       indoor: task.plant.indoor,
       heating: task.plant.heating,
       lightLevel: task.plant.lightLevel,
+      soilMoistureHint: task.plant.soilMoistureHint,
     });
     const weather = await fetchUserWeatherSnapshot(
       app.prisma,

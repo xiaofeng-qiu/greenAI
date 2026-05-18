@@ -22,6 +22,37 @@ describe("computeWaterIntervalDays", () => {
     });
     expect(withHeat).toBeLessThan(without);
   });
+
+  it("shortens interval when user reports dry soil vs moderate", () => {
+    const moderate = computeWaterIntervalDays("medium", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+      soilMoistureHint: "moderate",
+    });
+    const dry = computeWaterIntervalDays("medium", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+      soilMoistureHint: "dry",
+    });
+    expect(dry).toBeLessThan(moderate);
+  });
+
+  it("lengthens interval when user reports very wet soil", () => {
+    const baseline = computeWaterIntervalDays("low", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+    });
+    const veryWet = computeWaterIntervalDays("low", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+      soilMoistureHint: "very_wet",
+    });
+    expect(veryWet).toBeGreaterThan(baseline);
+  });
 });
 
 describe("weatherIntervalMultiplier / applyWeatherToIntervalDays", () => {

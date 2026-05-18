@@ -4,6 +4,7 @@ import {
   CareTaskStatus,
   CareTaskType,
   LightLevel,
+  SoilMoistureHint,
   WaterPreference,
 } from "@prisma/client";
 import {
@@ -25,6 +26,11 @@ const createBody = z.object({
   indoor: z.boolean(),
   heating: z.boolean(),
   lightLevel: z.nativeEnum(LightLevel),
+  soilMoistureHint: z.nativeEnum(SoilMoistureHint).optional(),
+});
+
+const patchBody = createBody.partial().extend({
+  soilMoistureHint: z.nativeEnum(SoilMoistureHint).nullable().optional(),
 });
 
 const identifyBody = z.object({
@@ -83,6 +89,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       indoor: parsed.data.indoor,
       heating: parsed.data.heating,
       lightLevel: parsed.data.lightLevel,
+      soilMoistureHint: parsed.data.soilMoistureHint ?? null,
     });
     const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
     const interval = applyWeatherToIntervalDays(baseInterval, weather);
@@ -96,6 +103,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
         indoor: parsed.data.indoor,
         heating: parsed.data.heating,
         lightLevel: parsed.data.lightLevel,
+        soilMoistureHint: parsed.data.soilMoistureHint,
         carePlan: {
           create: { baseIntervalDays: interval, horizonDays: 14 },
         },
@@ -141,7 +149,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
 
   app.patch("/plants/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;
-    const parsed = createBody.partial().safeParse(req.body);
+    const parsed = patchBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
 
     const plant = await app.prisma.plant.findFirst({
@@ -179,6 +187,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       indoor: plant.indoor,
       heating: plant.heating,
       lightLevel: plant.lightLevel,
+      soilMoistureHint: plant.soilMoistureHint,
     });
     const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
     const interval = applyWeatherToIntervalDays(baseInterval, weather);

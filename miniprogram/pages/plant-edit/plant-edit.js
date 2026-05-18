@@ -8,10 +8,18 @@ const WATER_RANGE = ["low", "medium", "high"];
 const WATER_LABELS = ["低", "中", "高"];
 const LIGHT_RANGE = ["low", "medium", "high"];
 const LIGHT_LABELS = ["弱", "中", "强"];
+const SOIL_LABELS = ["不填（默认）", "很湿", "偏湿", "适中", "偏干", "很干"];
+/** API values; index 0 = omit / null */
+const SOIL_VALUES = [null, "very_wet", "wet", "moderate", "dry", "very_dry"];
 
 function prefIndex(range, value) {
   const i = range.indexOf(value);
   return i >= 0 ? i : 1;
+}
+
+function soilIndexFromApi(v) {
+  const i = SOIL_VALUES.indexOf(v);
+  return i >= 0 ? i : 0;
 }
 
 Page({
@@ -26,6 +34,8 @@ Page({
     heating: false,
     lightIndex: 1,
     lightLabels: LIGHT_LABELS,
+    soilIndex: 0,
+    soilLabels: SOIL_LABELS,
   },
   onLoad(options) {
     if (options.id) {
@@ -45,6 +55,7 @@ Page({
         indoor: Boolean(p.indoor),
         heating: Boolean(p.heating),
         lightIndex: prefIndex(LIGHT_RANGE, p.lightLevel),
+        soilIndex: soilIndexFromApi(p.soilMoistureHint),
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
     } catch (e) {
@@ -69,6 +80,9 @@ Page({
   },
   onLightChange(e) {
     this.setData({ lightIndex: Number(e.detail.value) });
+  },
+  onSoilChange(e) {
+    this.setData({ soilIndex: Number(e.detail.value) });
   },
   onIdentifyPlant() {
     wx.chooseMedia({
@@ -132,6 +146,7 @@ Page({
       indoor,
       heating,
       lightIndex,
+      soilIndex,
     } = this.data;
     if (!nickname.trim() || !speciesLabel.trim()) {
       wx.showToast({ title: "请填写昵称和品种", icon: "none" });
@@ -146,6 +161,7 @@ Page({
       indoor,
       heating,
       lightLevel,
+      soilMoistureHint: SOIL_VALUES[soilIndex],
     };
     try {
       if (plantId) {
