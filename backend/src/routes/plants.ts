@@ -24,6 +24,15 @@ const createBody = z.object({
 const plantsRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
 
+  app.get("/plants/:id", async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const plant = await app.prisma.plant.findFirst({
+      where: { id, userId: req.userId! },
+    });
+    if (!plant) return reply.status(404).send({ error: "not_found" });
+    return plant;
+  });
+
   app.get("/plants", async (req) => {
     return app.prisma.plant.findMany({
       where: { userId: req.userId! },

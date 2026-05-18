@@ -33,5 +33,5 @@
     </picker>
   </view>
 
-  <button class="submit" type="primary" bindtap="onSubmit">保存植物</button>
+  <button class="submit" type="primary" bindtap="onSubmit">{{submitLabel}}</button>
 </view>

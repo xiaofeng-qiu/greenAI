@@ -43,6 +43,9 @@ Page({
   goAdd() {
     wx.navigateTo({ url: "/pages/plant-edit/plant-edit" });
   },
+  goPlants() {
+    wx.navigateTo({ url: "/pages/plants/plants" });
+  },
   async onComplete(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;

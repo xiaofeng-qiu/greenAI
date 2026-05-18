@@ -1,1 +1,4 @@
-{ "usingComponents": {} }
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "添加植物"
+}

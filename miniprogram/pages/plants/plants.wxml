@@ -1,0 +1,19 @@
+<view class="page">
+  <view class="toolbar">
+    <button class="btn" type="primary" size="mini" bindtap="goAdd">添加植物</button>
+    <button class="btn" size="mini" bindtap="onRefresh">刷新</button>
+  </view>
+
+  <view wx:if="{{plants.length === 0}}" class="empty">暂无植物，点击添加</view>
+
+  <block wx:for="{{plants}}" wx:key="id">
+    <view class="card">
+      <view class="row title">{{item.nickname}}</view>
+      <view class="row sub">{{item.speciesLabel}}</view>
+      <view class="actions">
+        <button size="mini" type="default" data-id="{{item.id}}" bindtap="goEdit">编辑</button>
+        <button size="mini" type="warn" data-id="{{item.id}}" bindtap="onDelete">删除</button>
+      </view>
+    </view>
+  </block>
+</view>
