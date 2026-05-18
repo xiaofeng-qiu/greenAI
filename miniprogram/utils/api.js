@@ -27,4 +27,4 @@ function setToken(token) {
   wx.setStorageSync("token", token);
 }
 
-module.exports = { request, setToken };
+module.exports = { BASE_URL, request, setToken };

@@ -61,8 +61,8 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Sync database schema (until committed migrations exist)
-        run: npx prisma db push
+      - name: Apply migrations
+        run: npx prisma migrate deploy
 
       - name: Run tests
         run: npm run test

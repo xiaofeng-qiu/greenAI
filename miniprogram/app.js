@@ -1,11 +1,11 @@
-const { setToken } = require("./utils/api.js");
+const { BASE_URL, setToken } = require("./utils/api.js");
 
 App({
   onLaunch() {
     wx.login({
       success: (res) => {
         wx.request({
-          url: "https://YOUR_API_HOST/auth/wechat",
+          url: `${BASE_URL}/auth/wechat`,
           method: "POST",
           data: { code: res.code },
           header: { "Content-Type": "application/json" },

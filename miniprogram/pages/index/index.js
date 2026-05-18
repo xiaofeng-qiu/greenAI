@@ -43,4 +43,26 @@ Page({
   goAdd() {
     wx.navigateTo({ url: "/pages/plant-edit/plant-edit" });
   },
+  async onComplete(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    try {
+      await request({ path: `/tasks/${id}/complete`, method: "POST" });
+      wx.showToast({ title: "已完成" });
+      this.loadTasks();
+    } catch (err) {
+      wx.showToast({ title: "操作失败", icon: "none" });
+    }
+  },
+  async onSkip(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    try {
+      await request({ path: `/tasks/${id}/skip`, method: "POST", data: {} });
+      wx.showToast({ title: "已跳过" });
+      this.loadTasks();
+    } catch (err) {
+      wx.showToast({ title: "操作失败", icon: "none" });
+    }
+  },
 });

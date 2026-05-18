@@ -38,6 +38,17 @@
   margin-bottom: 0;
 }
 
+.task-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.btn-done,
+.btn-skip {
+  margin: 0;
+}
+
 .label {
   color: #666;
   font-size: 26rpx;

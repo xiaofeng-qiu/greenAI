@@ -21,6 +21,10 @@
         <text class="label">类型</text>
         <text class="value">{{item.displayType}}</text>
       </view>
+      <view class="task-actions">
+        <button class="btn-done" size="mini" type="primary" data-id="{{item.id}}" bindtap="onComplete">完成</button>
+        <button class="btn-skip" size="mini" data-id="{{item.id}}" bindtap="onSkip">跳过</button>
+      </view>
     </view>
   </block>
 </view>
