@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="field">
+    <text class="field-label">昵称</text>
+    <input class="field-input" placeholder="例如：绿萝" value="{{nickname}}" bindinput="onNicknameInput" />
+  </view>
+
+  <view class="field">
+    <text class="field-label">品种</text>
+    <input class="field-input" placeholder="例如：Epipremnum" value="{{speciesLabel}}" bindinput="onSpeciesInput" />
+  </view>
+
+  <view class="field">
+    <text class="field-label">浇水频率</text>
+    <picker mode="selector" range="{{waterLabels}}" value="{{waterIndex}}" bindchange="onWaterChange">
+      <view class="picker-value">{{waterLabels[waterIndex]}}</view>
+    </picker>
+  </view>
+
+  <view class="field row">
+    <text class="field-label">室内</text>
+    <switch checked="{{indoor}}" bindchange="onIndoorChange" />
+  </view>
+
+  <view class="field row">
+    <text class="field-label">供暖环境</text>
+    <switch checked="{{heating}}" bindchange="onHeatingChange" />
+  </view>
+
+  <view class="field">
+    <text class="field-label">光照</text>
+    <picker mode="selector" range="{{lightLabels}}" value="{{lightIndex}}" bindchange="onLightChange">
+      <view class="picker-value">{{lightLabels[lightIndex]}}</view>
+    </picker>
+  </view>
+
+  <button class="submit" type="primary" bindtap="onSubmit">保存植物</button>
+</view>

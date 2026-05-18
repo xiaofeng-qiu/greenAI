@@ -1,0 +1,9 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/plant-edit/plant-edit"
+  ],
+  "window": {
+    "navigationBarTitleText": "植物管家"
+  }
+}

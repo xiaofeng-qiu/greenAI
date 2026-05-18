@@ -1,0 +1,17 @@
+{
+  "description": "植物管家小程序",
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "greenai-miniprogram",
+  "setting": {
+    "es6": true
+  },
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "node_modules"
+      }
+    ]
+  }
+}

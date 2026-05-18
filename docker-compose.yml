@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: greenai
+      POSTGRES_PASSWORD: greenai
+      POSTGRES_DB: greenai
+    ports:
+      - "5432:5432"
+    volumes:
+      - greenai_pg:/var/lib/postgresql/data
+volumes:
+  greenai_pg: {}

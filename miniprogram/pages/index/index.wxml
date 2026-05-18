@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="toolbar">
+    <button class="btn" size="mini" bindtap="onRefresh">刷新</button>
+    <button class="btn" size="mini" type="primary" bindtap="onSubscribe">订阅提醒</button>
+    <button class="btn" size="mini" bindtap="goAdd">添加植物</button>
+  </view>
+
+  <view wx:if="{{tasks.length === 0}}" class="empty">今日暂无待办任务</view>
+
+  <block wx:for="{{tasks}}" wx:key="id">
+    <view class="task-card">
+      <view class="task-row">
+        <text class="label">植物</text>
+        <text class="value">{{item.plantNickname}}</text>
+      </view>
+      <view class="task-row">
+        <text class="label">到期</text>
+        <text class="value">{{item.displayDueDate}}</text>
+      </view>
+      <view class="task-row">
+        <text class="label">类型</text>
+        <text class="value">{{item.displayType}}</text>
+      </view>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WaterPreference {
+  low
+  medium
+  high
+}
+
+enum LightLevel {
+  low
+  medium
+  high
+}
+
+enum CareTaskType {
+  water
+  fertilize
+}
+
+enum CareTaskStatus {
+  pending
+  completed
+  skipped
+}
+
+model User {
+  id        String   @id @default(cuid())
+  openid    String   @unique
+  timezone  String   @default("Asia/Shanghai")
+  createdAt DateTime @default(now())
+  plants    Plant[]
+  grants    SubscribeGrant[]
+}
+
+model Plant {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname        String
+  speciesLabel    String
+  waterPreference WaterPreference
+  indoor          Boolean
+  heating         Boolean
+  lightLevel      LightLevel
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  carePlan        CarePlan?
+  tasks           CareTask[]
+
+  @@index([userId])
+}
+
+model CarePlan {
+  id            String   @id @default(cuid())
+  plantId       String   @unique
+  plant         Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  baseIntervalDays Int
+  horizonDays      Int   @default(14)
+  updatedAt     DateTime @updatedAt
+}
+
+model CareTask {
+  id            String         @id @default(cuid())
+  plantId       String
+  plant         Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  type          CareTaskType
+  dueDate       DateTime
+  status        CareTaskStatus @default(pending)
+  notifySentAt  DateTime?
+  lastError     String?
+  createdAt     DateTime       @default(now())
+  notifications NotificationLog[]
+
+  @@index([plantId, dueDate])
+  @@index([status, dueDate])
+}
+
+model SubscribeGrant {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId  String
+  quota       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, templateId])
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      CareTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  templateId String
+  errcode   Int?
+  errmsg    String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
