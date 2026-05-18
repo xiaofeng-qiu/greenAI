@@ -1,4 +1,4 @@
-const rawArticles = require("../../data/knowledge.json");
+const rawArticles = require("../../data/knowledge.js");
 const { refreshTodayTabBadge } = require("../../utils/tabBadge.js");
 
 Page({

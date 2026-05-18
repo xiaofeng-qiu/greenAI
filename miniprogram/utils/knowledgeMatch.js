@@ -1,4 +1,4 @@
-const articles = require("../data/knowledge.json");
+const articles = require("../data/knowledge.js");
 
 function norm(s) {
   return String(s || "")
