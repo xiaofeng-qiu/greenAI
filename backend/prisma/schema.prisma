@@ -76,6 +76,8 @@ model CareTask {
   dueDate       DateTime
   status        CareTaskStatus @default(pending)
   notifySentAt  DateTime?
+  /// After a failed subscribe send, cron skips this task until this time (exponential backoff).
+  notifyNextAttemptAt DateTime?
   notifyFailCount Int          @default(0)
   lastError     String?
   createdAt     DateTime       @default(now())

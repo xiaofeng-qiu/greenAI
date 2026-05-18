@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { CareTaskStatus, CareTaskType } from "@prisma/client";
 import { loadConfig } from "../config.js";
+import { subscribeNotifyRetryDelayMs } from "../lib/subscribeRetryBackoff.js";
 import { getAccessToken, sendSubscribeMessage } from "./wechat.js";
 
 export async function runReminderJob(
@@ -15,6 +16,10 @@ export async function runReminderJob(
       status: CareTaskStatus.pending,
       notifySentAt: null,
       dueDate: { lte: windowEnd },
+      OR: [
+        { notifyNextAttemptAt: null },
+        { notifyNextAttemptAt: { lte: now } },
+      ],
     },
     include: { plant: { include: { user: true } } },
     take: 100,
@@ -72,7 +77,11 @@ export async function runReminderJob(
       await prisma.$transaction([
         prisma.careTask.update({
           where: { id: task.id },
-          data: { notifySentAt: new Date(), notifyFailCount: 0 },
+          data: {
+            notifySentAt: new Date(),
+            notifyFailCount: 0,
+            notifyNextAttemptAt: null,
+          },
         }),
         prisma.subscribeGrant.update({
           where: { id: grant.id },
@@ -81,9 +90,18 @@ export async function runReminderJob(
       ]);
       sent++;
     } else {
+      const nextFailCount = task.notifyFailCount + 1;
+      const delayMs = subscribeNotifyRetryDelayMs(nextFailCount);
+      const nextAttempt =
+        nextFailCount >= 5 ? null : new Date(now.getTime() + delayMs);
+      const errSummary = `wx_${wx.errcode}_${wx.errmsg ?? ""}`;
       await prisma.careTask.update({
         where: { id: task.id },
-        data: { notifyFailCount: { increment: 1 } },
+        data: {
+          notifyFailCount: { increment: 1 },
+          notifyNextAttemptAt: nextAttempt,
+          lastError: errSummary.slice(0, 500),
+        },
       });
       skipped++;
     }

@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "WaterPreference" AS ENUM ('low', 'medium', 'high');
 
 -- CreateEnum
