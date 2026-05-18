@@ -99,7 +99,7 @@ Page({
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     try {
-      await request({ path: `/tasks/${id}/complete`, method: "POST" });
+      await request({ path: `/tasks/${id}/complete`, method: "POST", data: {} });
       wx.showToast({ title: "已完成" });
       this.loadTasks();
     } catch (err) {
