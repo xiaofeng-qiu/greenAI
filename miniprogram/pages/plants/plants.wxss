@@ -321,6 +321,16 @@
   margin-top: 12rpx;
   font-variant-numeric: tabular-nums;
 }
+.settings-chart-hint {
+  margin-top: 24rpx;
+  padding: 16rpx 20rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: var(--ga-info);
+  background: var(--ga-info-soft);
+  border-radius: var(--ga-radius-sm);
+  border: 1rpx solid rgba(47,82,128,0.12);
+}
 .settings-mono {
   display: block;
   font-size: 26rpx;
