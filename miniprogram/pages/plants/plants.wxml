@@ -77,6 +77,7 @@
           </view>
         </block>
       </view>
+      <view wx:if="{{forecastHint}}" class="settings-chart-hint">{{forecastHint}}</view>
     </view>
 
     <!-- 时区（与定位绑定） -->
@@ -94,10 +95,5 @@
         <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
       </view>
     </view>
-    <view class="settings-field">
-      <text class="settings-label">当前天气</text>
-      <text class="settings-weather">{{weatherLine}}</text>
-    </view>
-    <view wx:if="{{forecastHint}}" class="settings-hint">{{forecastHint}}</view>
   </view>
 </view>

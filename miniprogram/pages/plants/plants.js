@@ -178,7 +178,7 @@ Page({
         needLocationTip: !hasLoc,
         airConditioning: Boolean(me.airConditioning),
         aspectIndex,
-        weatherLine: "",
+
         forecastHint: "",
         forecastDays: [],
         currentLive: null,
@@ -188,22 +188,14 @@ Page({
         wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
         try {
           const w = await request({ path: "/weather/current", method: "GET" });
-          let line = `当前约 ${w.temperatureC}°C，湿度 ${w.relativeHumidity}%`;
-          if (w.upcomingWetBias != null && w.upcomingWetBias >= 0.08) {
-            line += `；预报偏湿 ${Math.round(w.upcomingWetBias * 100)}%（已微调浇水间隔）`;
-          }
-          if (w.upcomingDryBias != null && w.upcomingDryBias >= 0.45) {
-            line += `；预报偏旱 ${Math.round(w.upcomingDryBias * 100)}%（已微调浇水间隔）`;
-          }
           this.setData({
-            weatherLine: line,
             currentLive: {
               tempC: Math.round(w.temperatureC),
               rh: Math.round(w.relativeHumidity),
             },
           });
         } catch (e) {
-          this.setData({ weatherLine: "天气暂不可用", currentLive: null });
+          this.setData({ currentLive: null });
         }
         try {
           const fc = await request({ path: "/weather/forecast", method: "GET" });
@@ -223,7 +215,7 @@ Page({
         }
       } else {
         this.setData({
-          weatherLine: "设置位置后可查看当前天气与预报（Open-Meteo）",
+          currentLive: null,
         });
       }
     } catch (e) {
