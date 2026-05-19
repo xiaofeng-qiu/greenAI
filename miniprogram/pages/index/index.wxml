@@ -15,10 +15,6 @@
         <text class="index-ibtn__icon">🔔</text>
         <text class="index-ibtn__label">订阅提醒</text>
       </view>
-      <view class="index-ibtn" bindtap="goSettings">
-        <text class="index-ibtn__icon">⚙</text>
-        <text class="index-ibtn__label">设置</text>
-      </view>
       <view class="index-ibtn" bindtap="goDiagnose">
         <text class="index-ibtn__icon">◇</text>
         <text class="index-ibtn__label">问题诊断</text>
