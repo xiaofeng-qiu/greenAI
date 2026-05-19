@@ -1,6 +1,5 @@
 <view class="ga-page diagnose">
   <view class="ga-hero diagnose-hero">
-    <text class="ga-hero__eyebrow">辅助工具</text>
     <view class="ga-hero__title">问题诊断</view>
     <view class="ga-hero__desc">可先勾选症状做规则参考，或使用「拍照 AI 诊断」（需服务端配置）。结果仅供参考。</view>
   </view>
