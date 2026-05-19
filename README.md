@@ -105,6 +105,10 @@ npm test          # 单元测试（39 项）
 npm run build     # TypeScript 编译
 ```
 
+## 文档
+
+完整索引与目录约定见 **[docs/README.md](docs/README.md)**（部署说明在 [docs/engineering/deployment.md](docs/engineering/deployment.md)）。
+
 ## 部署
 
 ### Docker Compose 部署

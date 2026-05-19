@@ -1,5 +1,5 @@
 # Production-style stack: API + PostgreSQL. Use from repo root with env file.
-# See docs/deployment.md
+# See docs/engineering/deployment.md
 services:
   db:
     image: postgres:16-alpine

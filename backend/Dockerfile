@@ -1,4 +1,4 @@
-# Production API image (Fastify + Prisma). Build from repo root: see docs/deployment.md
+# Production API image (Fastify + Prisma). Build from repo root: see docs/engineering/deployment.md
 FROM node:20-bookworm-slim
 
 WORKDIR /app
