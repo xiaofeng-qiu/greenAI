@@ -1,6 +1,5 @@
 <view class="ga-page identify">
   <view class="ga-hero identify-hero">
-    <text class="ga-hero__eyebrow">智能工具</text>
     <view class="ga-hero__title">识别与诊断</view>
     <view class="ga-hero__desc">拍照识花、AI 诊断、症状对照——多角度辅助养护决策。</view>
   </view>
