@@ -18,11 +18,6 @@ const ZONES = [
 const WINDOW_ASPECT_KEYS = ["unknown", "north", "south", "east", "west"];
 const WINDOW_ASPECT_LABELS = ["未知", "北向", "南向", "东向", "西向"];
 
-function locSummary(me) {
-  if (!me || me.latitude == null || me.longitude == null) return "未设置";
-  return `${Number(me.latitude).toFixed(4)}, ${Number(me.longitude).toFixed(4)}`;
-}
-
 function locationReadable(me) {
   const label = me && me.locationLabel != null ? String(me.locationLabel).trim() : "";
   return label.length > 0 ? label : "";
@@ -81,7 +76,6 @@ Page({
     // settings
     labels: [...ZONES],
     tzIndex: 0,
-    locSummary: "",
     locationReadable: "",
     needLocationTip: false,
     weatherLine: "",
@@ -180,7 +174,6 @@ Page({
       this.setData({
         labels,
         tzIndex: idx,
-        locSummary: locSummary(me),
         locationReadable: locationReadable(me),
         needLocationTip: !hasLoc,
         airConditioning: Boolean(me.airConditioning),
