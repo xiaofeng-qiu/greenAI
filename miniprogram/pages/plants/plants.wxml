@@ -3,9 +3,6 @@
     <text class="ga-hero__eyebrow">档案</text>
     <view class="ga-hero__title">我的植物</view>
     <view class="ga-hero__desc">管理品种、环境与养护节奏；编辑后将自动重算计划。</view>
-    <view class="plants-hero__settings" bindtap="goSettings">
-      <text>⚙ 设置</text>
-    </view>
   </view>
 
   <view class="plants-actions ga-card">
@@ -34,4 +31,80 @@
       </view>
     </view>
   </block>
+
+  <!-- ====== 定位 & 设置（inline） ====== -->
+  <view class="ga-section-title">时区</view>
+  <view class="settings-card ga-card">
+    <view class="settings-field">
+      <text class="settings-label">时区（影响「今日任务」按哪天算）</text>
+      <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
+        <view class="settings-picker">{{labels[tzIndex]}}</view>
+      </picker>
+    </view>
+    <view class="settings-primary" bindtap="onSave">保存时区</view>
+  </view>
+
+  <view class="ga-section-title">室内微气候</view>
+  <view class="settings-card ga-card">
+    <view class="settings-field settings-field--row">
+      <text class="settings-label settings-label--inline">长期开空调（偏干）</text>
+      <switch color="#2a4d3a" checked="{{airConditioning}}" bindchange="onAcChange" />
+    </view>
+    <view class="settings-field">
+      <text class="settings-label">窗台 / 主采光朝向</text>
+      <picker mode="selector" range="{{aspectLabels}}" value="{{aspectIndex}}" bindchange="onAspectChange">
+        <view class="settings-picker">{{aspectLabels[aspectIndex]}}</view>
+      </picker>
+    </view>
+    <view class="settings-primary settings-primary--secondary" bindtap="onSaveEnv">保存环境偏好</view>
+    <text class="settings-hint-inline">与浇水间隔规则联动；保存后新建或「重算计划」的植物会采用最新偏好。</text>
+  </view>
+
+  <view class="ga-section-title">天气与环境</view>
+  <view wx:if="{{needLocationTip}}" class="settings-callout ga-card">
+    <text class="settings-callout__title">环境感知</text>
+    <text class="settings-callout__body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方使用「使用当前定位」并允许授权。</text>
+  </view>
+
+  <view class="settings-card ga-card">
+    <view wx:if="{{currentLive}}" class="settings-live">
+      <view class="settings-live-icon settings-live-icon--{{liveWeatherKind}}"></view>
+      <view class="settings-live-texts">
+        <text class="settings-live-temp">{{currentLive.tempC}}°C</text>
+        <text class="settings-live-sub">湿度 {{currentLive.rh}}%</text>
+      </view>
+    </view>
+
+    <view wx:if="{{forecastDays.length}}" class="settings-chart">
+      <text class="settings-chart-title">未来 3 日 · 气温示意</text>
+      <view class="settings-chart-row">
+        <block wx:for="{{forecastDays}}" wx:key="date">
+          <view class="settings-chart-day">
+            <view class="settings-live-icon settings-live-icon--sm settings-live-icon--{{item.weatherKind}}"></view>
+            <text class="settings-chart-dm">{{item.dateShort}}</text>
+            <view class="settings-chart-track">
+              <view class="settings-chart-fill" style="height: {{item.barFillRpx}}rpx;"></view>
+            </view>
+            <text class="settings-chart-hilo">{{item.lo}}° / {{item.hi}}°</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <view class="settings-field">
+      <text class="settings-label">已保存位置（WGS84）</text>
+      <text class="settings-mono">{{locSummary}}</text>
+      <text wx:if="{{locationReadable}}" class="settings-location-label">{{locationReadable}}</text>
+    </view>
+    <view class="settings-weather">{{weatherLine}}</view>
+    <view wx:if="{{forecastHint}}" class="settings-hint">{{forecastHint}}</view>
+    <view wx:if="{{forecastDays.length}}" class="settings-forecast-head">未来 3 天预报（按已保存时区）</view>
+    <block wx:for="{{forecastDays}}" wx:key="date">
+      <text class="settings-forecast-row">{{item.line}}</text>
+    </block>
+    <view class="settings-btns">
+      <view class="settings-btn settings-btn--primary" bindtap="onPickLocation">使用当前定位</view>
+      <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
+    </view>
+  </view>
 </view>

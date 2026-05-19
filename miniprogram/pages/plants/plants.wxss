@@ -140,3 +140,270 @@
   background: var(--ga-danger-soft);
   color: var(--ga-danger);
 }
+
+/* ── 设置（inline） ── */
+.settings-card {
+  padding: 12rpx 24rpx 28rpx;
+  margin-bottom: var(--ga-space);
+}
+.settings-field {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--ga-border);
+}
+.settings-field:last-of-type {
+  border-bottom: none;
+}
+.settings-field--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.settings-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ga-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 16rpx;
+}
+.settings-label--inline {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ga-text);
+}
+.settings-picker {
+  padding: 22rpx 24rpx;
+  font-size: 28rpx;
+  color: var(--ga-text);
+  background: var(--ga-bg-elevated);
+  border-radius: var(--ga-radius-sm);
+  border: 1rpx solid var(--ga-border-strong);
+}
+.settings-primary {
+  margin-top: 8rpx;
+  text-align: center;
+  padding: 24rpx;
+  border-radius: var(--ga-radius-sm);
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #f4faf6;
+  background: linear-gradient(135deg, var(--ga-brand), var(--ga-brand-mid));
+}
+.settings-primary--secondary {
+  margin-top: 16rpx;
+  background: var(--ga-bg-elevated);
+  color: var(--ga-brand);
+  border: 1rpx solid var(--ga-border-strong);
+}
+.settings-hint-inline {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: var(--ga-text-muted);
+}
+.settings-live {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 8rpx 0 24rpx;
+  margin-bottom: 8rpx;
+  border-bottom: 1rpx solid var(--ga-border);
+}
+.settings-live-texts {
+  flex: 1;
+  min-width: 0;
+}
+.settings-live-temp {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: var(--ga-text);
+  line-height: 1.1;
+}
+.settings-live-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+}
+.settings-live-icon {
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.settings-live-icon--sm {
+  width: 48rpx;
+  height: 48rpx;
+}
+.settings-live-icon--sun {
+  background: radial-gradient(circle at 35% 35%, #fffde7, #fbc02d);
+  box-shadow: 0 0 0 2rpx rgba(251,192,45,0.35);
+}
+.settings-live-icon--cloud {
+  background: linear-gradient(165deg, #eceff1, #90a4ae);
+  border-radius: 42%;
+}
+.settings-live-icon--rain {
+  background: linear-gradient(165deg, #b0bec5, #455a64);
+  border-radius: 42%;
+}
+.settings-live-icon--snow {
+  background: linear-gradient(165deg, #e3f2fd, #64b5f6);
+  border-radius: 42%;
+}
+.settings-live-icon--storm {
+  background: linear-gradient(165deg, #5c6bc0, #283593);
+  border-radius: 42%;
+}
+.settings-live-icon--fog {
+  background: linear-gradient(165deg, #cfd8dc, #78909c);
+  border-radius: 42%;
+}
+.settings-chart {
+  padding: 8rpx 0 28rpx;
+  margin-bottom: 8rpx;
+  border-bottom: 1rpx solid var(--ga-border);
+}
+.settings-chart-title {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ga-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 20rpx;
+}
+.settings-chart-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12rpx;
+}
+.settings-chart-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.settings-chart-dm {
+  font-size: 22rpx;
+  color: var(--ga-text-muted);
+  margin-top: 8rpx;
+  margin-bottom: 12rpx;
+}
+.settings-chart-track {
+  width: 100%;
+  max-width: 64rpx;
+  height: 148rpx;
+  background: var(--ga-bg-elevated);
+  border-radius: 14rpx;
+  border: 1rpx solid var(--ga-border-strong);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 8rpx;
+  box-sizing: border-box;
+}
+.settings-chart-fill {
+  width: 100%;
+  min-height: 24rpx;
+  border-radius: 10rpx;
+  background: linear-gradient(180deg, var(--ga-brand-mid), var(--ga-brand));
+}
+.settings-chart-hilo {
+  font-size: 20rpx;
+  color: var(--ga-text-secondary);
+  margin-top: 12rpx;
+  font-variant-numeric: tabular-nums;
+}
+.settings-mono {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ga-text);
+  font-family: "SF Mono","Menlo",monospace;
+  word-break: break-all;
+  line-height: 1.45;
+}
+.settings-location-label {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.45;
+  color: var(--ga-text-secondary);
+}
+.settings-weather {
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.55;
+  margin: 8rpx 0 16rpx;
+}
+.settings-hint {
+  font-size: 24rpx;
+  color: var(--ga-info);
+  background: var(--ga-info-soft);
+  padding: 16rpx 20rpx;
+  border-radius: var(--ga-radius-sm);
+  line-height: 1.45;
+  margin-bottom: 16rpx;
+  border: 1rpx solid rgba(47,82,128,0.12);
+}
+.settings-forecast-head {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  margin: 24rpx 0 12rpx;
+  letter-spacing: 0.04em;
+}
+.settings-forecast-row {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.55;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid var(--ga-border);
+}
+.settings-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+.settings-btn {
+  padding: 18rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+.settings-btn--primary {
+  background: var(--ga-brand);
+  color: #f4faf6;
+}
+.settings-btn--ghost {
+  border: 1rpx solid var(--ga-border-strong);
+  color: var(--ga-text-secondary);
+  background: var(--ga-bg-elevated);
+}
+.settings-callout {
+  padding: 28rpx 28rpx 32rpx;
+  margin-bottom: var(--ga-space);
+  border-left: 6rpx solid var(--ga-brand-mid);
+  background: linear-gradient(90deg, var(--ga-brand-soft), var(--ga-surface));
+}
+.settings-callout__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--ga-brand);
+  margin-bottom: 12rpx;
+}
+.settings-callout__body {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.55;
+}
