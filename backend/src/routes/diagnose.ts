@@ -11,6 +11,11 @@ import {
 } from "../domain/diagnoseEngine.js";
 import { authenticate } from "../lib/authGuard.js";
 import { diagnosePlantWithVisionLlm } from "../services/diagnoseLlm.js";
+import {
+  listArticleSummariesBySymptomIds,
+  listArticleSummariesForSymptomCatalog,
+  type KnowledgeArticleSummary,
+} from "../services/knowledgeArticleService.js";
 
 const symptomIdSet = new Set<string>(DIAGNOSE_SYMPTOM_IDS);
 
@@ -54,8 +59,19 @@ const diagnoseRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/diagnose/catalog", async () => {
     const cfg = loadConfig();
+    const base = listSymptomCatalog();
+    let bySymptom: Map<string, KnowledgeArticleSummary[]>;
+    try {
+      bySymptom = await listArticleSummariesForSymptomCatalog(app.prisma);
+    } catch {
+      bySymptom = new Map();
+    }
+    const symptoms = base.map((s) => ({
+      ...s,
+      relatedArticles: bySymptom.get(s.id) ?? [],
+    }));
     return {
-      symptoms: listSymptomCatalog(),
+      symptoms,
       llmDiagnoseEnabled: resolveDiagnoseLlmSettings(cfg) !== null,
     };
   });
@@ -77,10 +93,16 @@ const diagnoseRoutes: FastifyPluginAsync = async (app) => {
       env = { indoor: plant.indoor, heating: plant.heating };
     }
 
-    return diagnoseFromSymptoms(
+    const core = diagnoseFromSymptoms(
       parsed.data.symptomIds as DiagnoseSymptomId[],
       env
     );
+    const relatedArticles = await listArticleSummariesBySymptomIds(
+      app.prisma,
+      parsed.data.symptomIds,
+      10
+    );
+    return { ...core, relatedArticles };
   });
 
   app.post("/diagnose/llm", async (req, reply) => {
@@ -139,10 +161,15 @@ const diagnoseRoutes: FastifyPluginAsync = async (app) => {
         symptomLabels: symptomLabels.length ? symptomLabels : undefined,
         plantHint,
       });
+      const relatedArticles =
+        symptomIds.length > 0
+          ? await listArticleSummariesBySymptomIds(app.prisma, symptomIds, 8)
+          : [];
       return {
         source: "llm" as const,
         diagnosis,
         disclaimer: `${DIAGNOSE_DISCLAIMER}\n${DIAGNOSE_LLM_EXTRA_DISCLAIMER}`,
+        relatedArticles,
       };
     } catch (e) {
       req.log.warn({ err: String(e) }, "diagnose_llm_failed");

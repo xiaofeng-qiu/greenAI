@@ -23,6 +23,14 @@ function soilIndexFromApi(v) {
   return i >= 0 ? i : 0;
 }
 
+function pickKnowledgeLinkFromIdentify(data, species, nick) {
+  const rel = data && data.relatedArticles;
+  if (Array.isArray(rel) && rel.length > 0 && rel[0].slug) {
+    return { id: rel[0].slug, title: rel[0].title || rel[0].slug };
+  }
+  return bestKnowledgeMatch(species, nick || species);
+}
+
 Page({
   data: {
     plantId: "",
@@ -80,20 +88,60 @@ Page({
         identifyMeta: null,
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
+      this.enrichKnowledgeLinkFromApi();
     } catch (e) {
       wx.showToast({ title: "加载失败", icon: "none" });
       setTimeout(() => wx.navigateBack(), 1500);
+    }
+  },
+  enrichKnowledgeLinkFromApiDebounced() {
+    if (this._kbTimer) clearTimeout(this._kbTimer);
+    this._kbTimer = setTimeout(() => {
+      this._kbTimer = null;
+      this.enrichKnowledgeLinkFromApi();
+    }, 450);
+  },
+  async enrichKnowledgeLinkFromApi() {
+    const q = (this.data.speciesLabel || "").trim();
+    if (q.length < 2) return;
+    try {
+      const res = await request({
+        path: `/knowledge/search?q=${encodeURIComponent(q)}&limit=12`,
+        method: "GET",
+      });
+      const arts = (res && res.buckets && res.buckets.articles) || [];
+      if (!arts.length) return;
+      const bySlug = new Map(arts.map((a) => [a.slug, a]));
+      const local = bestKnowledgeMatch(
+        q,
+        (this.data.nickname || "").trim()
+      );
+      let pick;
+      if (local && local.id && bySlug.has(local.id)) {
+        const a = bySlug.get(local.id);
+        pick = { id: a.slug, title: a.title };
+      } else {
+        const sorted = [...arts].sort((x, y) => y.score - x.score);
+        pick = { id: sorted[0].slug, title: sorted[0].title };
+      }
+      if (pick && pick.id) {
+        this.setData({ knowledgeLink: pick });
+      }
+    } catch (_) {
+      /* 保留本地 bestKnowledgeMatch */
     }
   },
   onNicknameInput(e) {
     const nickname = e.detail.value;
     const link = bestKnowledgeMatch(this.data.speciesLabel || "", nickname);
     this.setData({ nickname, knowledgeLink: link });
+    this.enrichKnowledgeLinkFromApiDebounced();
   },
   onSpeciesInput(e) {
     const speciesLabel = e.detail.value;
     const link = bestKnowledgeMatch(speciesLabel, this.data.nickname || "");
     this.setData({ speciesLabel, knowledgeLink: link });
+    this.enrichKnowledgeLinkFromApiDebounced();
   },
   onWaterChange(e) {
     this.setData({ waterIndex: Number(e.detail.value) });
@@ -240,7 +288,11 @@ Page({
               }
               const nick = (this.data.nickname || "").trim();
               const species = best.name || "";
-              const link = bestKnowledgeMatch(species, nick || species);
+              const link = pickKnowledgeLinkFromIdentify(
+                data,
+                species,
+                nick || species
+              );
               const meta =
                 best.baikeDescription || best.baikeUrl
                   ? {

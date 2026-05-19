@@ -390,5 +390,107 @@ model SpeciesProfile {
 
   updatedAt      DateTime               @updatedAt
 
+  aliases        SpeciesAlias[]
+
+}
+
+
+
+enum KnowledgeArticleLayer {
+
+  species_guide
+
+  pest_disease
+
+  environment
+
+}
+
+
+
+enum KnowledgeArticleStatus {
+
+  draft
+
+  published
+
+}
+
+
+
+/// 可读词条（L1 图文 / L2 病虫害 / L3 环境语境）
+
+model KnowledgeArticle {
+
+  id                  String                   @id @default(cuid())
+
+  /// 与历史小程序 id 对齐，如 epipremnum
+
+  slug                String                   @unique
+
+  title               String
+
+  summary             String                   @default("")
+
+  body                String                   @default("")
+
+  layer               KnowledgeArticleLayer    @default(species_guide)
+
+  status              KnowledgeArticleStatus   @default(draft)
+
+  locale              String                   @default("zh")
+
+  coverTone           Int                      @default(0)
+
+  sections            Json?
+
+  /// 与 diagnoseEngine 症状 id 对齐，用于延伸阅读召回
+
+  symptomIds          String[]                 @default([])
+
+  /// 归一化品种检索键（与 SpeciesProfile.nameKey 同规则），用于品种→图文关联
+
+  speciesNameKeys     String[]                 @default([])
+
+  disclaimerVersion   String?
+
+  publishedAt         DateTime?
+
+  deletedAt           DateTime?
+
+  createdAt           DateTime                 @default(now())
+
+  updatedAt           DateTime                 @updatedAt
+
+
+
+  @@index([status, deletedAt])
+
+}
+
+
+
+/// L1 品种俗名/别名检索（displayName 以外）
+
+model SpeciesAlias {
+
+  id               String         @id @default(cuid())
+
+  speciesProfileId String
+
+  speciesProfile   SpeciesProfile @relation(fields: [speciesProfileId], references: [id], onDelete: Cascade)
+
+  alias            String
+
+  locale           String         @default("zh")
+
+  createdAt        DateTime       @default(now())
+
+
+
+  @@unique([speciesProfileId, alias, locale])
+
+  @@index([alias])
+
 }
 

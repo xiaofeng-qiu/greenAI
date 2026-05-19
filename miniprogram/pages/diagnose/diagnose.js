@@ -39,6 +39,13 @@ Page({
   async onLoad() {
     await Promise.all([this.loadCatalog(), this.loadPlants()]);
   },
+  onOpenKnowledgeArticle(e) {
+    const slug = e.currentTarget.dataset.slug;
+    if (!slug) return;
+    wx.navigateTo({
+      url: `/pages/discover-detail/discover-detail?id=${encodeURIComponent(slug)}`,
+    });
+  },
   async loadCatalog() {
     try {
       const data = await request({ path: "/diagnose/catalog", method: "GET" });

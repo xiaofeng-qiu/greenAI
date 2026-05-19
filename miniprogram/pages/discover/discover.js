@@ -19,6 +19,8 @@ Page({
     refreshTodayTabBadge();
   },
   onLoad() {
+    this._searchExtras = [];
+    this._searchTimer = null;
     const list = Array.isArray(rawArticles) ? rawArticles : [];
     const all = decorateArticles(list);
     this.setData({ allArticles: all, articles: all });
@@ -45,13 +47,48 @@ Page({
     }
   },
   onSearchInput(e) {
-    const q = (e.detail.value || "").trim().toLowerCase();
-    this.setData({ searchQuery: e.detail.value || "" });
+    const raw = e.detail.value || "";
+    const q = raw.trim().toLowerCase();
+    this.setData({ searchQuery: raw });
     this.applyFilter(q);
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      this._searchTimer = null;
+      this.trySearchKnowledgeRemote(raw.trim());
+    }, 400);
+  },
+  async trySearchKnowledgeRemote(rawQ) {
+    const q = (this.data.searchQuery || "").trim().toLowerCase();
+    if (!rawQ || rawQ.length < 2) {
+      this._searchExtras = [];
+      const qNow = (this.data.searchQuery || "").trim().toLowerCase();
+      this.applyFilter(qNow);
+      return;
+    }
+    try {
+      const res = await request({
+        path: `/knowledge/search?q=${encodeURIComponent(rawQ)}&limit=15`,
+        method: "GET",
+      });
+      const hits = (res && res.buckets && res.buckets.articles) || [];
+      this._searchExtras = hits.map((h) => ({
+        id: h.slug,
+        title: h.title || h.slug,
+        summary: h.snippet || "",
+        body: "",
+        coverTone: 0,
+        thumbGlyph: (h.title && String(h.title).charAt(0)) || "搜",
+      }));
+    } catch (_) {
+      this._searchExtras = [];
+    }
+    const qNow = (this.data.searchQuery || "").trim().toLowerCase();
+    this.applyFilter(qNow);
   },
   applyFilter(q) {
     const all = this.data.allArticles || [];
     if (!q) {
+      this._searchExtras = [];
       this.setData({ articles: all });
       return;
     }
@@ -59,7 +96,15 @@ Page({
       const hay = `${a.title || ""} ${a.summary || ""} ${a.body || ""}`.toLowerCase();
       return hay.includes(q);
     });
-    this.setData({ articles: filtered });
+    const extras = this._searchExtras || [];
+    const byId = new Map();
+    for (const a of filtered) {
+      if (a && a.id != null) byId.set(String(a.id), a);
+    }
+    for (const a of extras) {
+      if (a && a.id != null && !byId.has(String(a.id))) byId.set(String(a.id), a);
+    }
+    this.setData({ articles: decorateArticles([...byId.values()]) });
   },
   onOpen(e) {
     const id = e.currentTarget.dataset.id;

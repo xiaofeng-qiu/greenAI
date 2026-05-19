@@ -98,6 +98,7 @@ docker compose -f deploy/docker-compose.prod.yml logs -f api
 ```bash
 npm ci
 npx prisma migrate deploy
+npx prisma db seed
 npm run build
 npm run start
 ```

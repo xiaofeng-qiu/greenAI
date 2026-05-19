@@ -47,6 +47,13 @@
     </block>
     <text wx:if="{{llmResult.diagnosis.caution}}" class="diagnose-tip diagnose-tip--top">{{llmResult.diagnosis.caution}}</text>
     <text wx:if="{{llmResult.diagnosis.needs_expert_visit}}" class="diagnose-tip">建议尽快携带样本或照片咨询线下园艺 / 植保人员。</text>
+    <view wx:if="{{llmResult.relatedArticles && llmResult.relatedArticles.length}}" class="diagnose-kb ga-card">
+      <text class="diagnose-kb__title">延伸阅读</text>
+      <view wx:for="{{llmResult.relatedArticles}}" wx:key="slug" class="diagnose-kb__row" data-slug="{{item.slug}}" bindtap="onOpenKnowledgeArticle">
+        <text class="diagnose-kb__row-title">{{item.title}}</text>
+        <text wx:if="{{item.summary}}" class="diagnose-kb__row-sum">{{item.summary}}</text>
+      </view>
+    </view>
     <text class="diagnose-disclaimer diagnose-disclaimer--top">{{llmResult.disclaimer}}</text>
   </view>
 
@@ -86,6 +93,13 @@
     <block wx:for="{{result.contextTips}}" wx:key="*this">
       <view class="diagnose-tip">{{item}}</view>
     </block>
+    <view wx:if="{{result.relatedArticles && result.relatedArticles.length}}" class="diagnose-kb ga-card">
+      <text class="diagnose-kb__title">延伸阅读</text>
+      <view wx:for="{{result.relatedArticles}}" wx:key="slug" class="diagnose-kb__row" data-slug="{{item.slug}}" bindtap="onOpenKnowledgeArticle">
+        <text class="diagnose-kb__row-title">{{item.title}}</text>
+        <text wx:if="{{item.summary}}" class="diagnose-kb__row-sum">{{item.summary}}</text>
+      </view>
+    </view>
     <text class="diagnose-disclaimer">{{result.disclaimer}}</text>
   </view>
 </view>

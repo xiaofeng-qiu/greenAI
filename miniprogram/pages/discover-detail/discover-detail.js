@@ -1,4 +1,5 @@
-const articles = require("../../data/knowledge.js");
+const localArticles = require("../../data/knowledge.js");
+const { request } = require("../../utils/api.js");
 
 function sectionsFromArticle(a, coverTone) {
   if (a.sections && Array.isArray(a.sections) && a.sections.length) {
@@ -22,13 +23,41 @@ Page({
   data: { article: null, articleSections: [], coverTone: 0 },
   onLoad(options) {
     const id = options.id ? decodeURIComponent(options.id) : "";
-    const list = Array.isArray(articles) ? articles : [];
-    const article = list.find((x) => x.id === id) || null;
-    const coverTone = article && typeof article.coverTone === "number" ? article.coverTone : 0;
-    const articleSections = article ? sectionsFromArticle(article, coverTone) : [];
-    this.setData({ article, articleSections, coverTone });
-    if (article && article.title) {
-      wx.setNavigationBarTitle({ title: article.title.slice(0, 12) });
+    const list = Array.isArray(localArticles) ? localArticles : [];
+    let article = list.find((x) => x.id === id) || null;
+    const applyArticle = (a) => {
+      if (!a) {
+        this.setData({ article: null, articleSections: [], coverTone: 0 });
+        return;
+      }
+      const coverTone = typeof a.coverTone === "number" ? a.coverTone : 0;
+      const articleSections = sectionsFromArticle(a, coverTone);
+      this.setData({ article: a, articleSections, coverTone });
+      if (a.title) {
+        wx.setNavigationBarTitle({ title: String(a.title).slice(0, 12) });
+      }
+    };
+    if (article) {
+      applyArticle(article);
+      return;
     }
+    if (!id) {
+      applyArticle(null);
+      return;
+    }
+    request({
+      path: `/knowledge/articles/${encodeURIComponent(id)}`,
+      method: "GET",
+    })
+      .then((remote) => {
+        if (remote && remote.id) {
+          applyArticle(remote);
+        } else {
+          applyArticle(null);
+        }
+      })
+      .catch(() => {
+        applyArticle(null);
+      });
   },
 });

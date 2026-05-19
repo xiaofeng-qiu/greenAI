@@ -27,6 +27,8 @@ import {
   identifyPlantWithBaidu,
 } from "../services/baiduPlantIdentify.js";
 import { findOrCreateSpeciesProfile } from "../services/speciesProfileService.js";
+import { listArticleSummariesBySpeciesNameKeys } from "../services/knowledgeArticleService.js";
+import { normalizeSpeciesNameKey } from "../lib/speciesNameKey.js";
 
 const createBody = z.object({
   nickname: z.string().min(1),
@@ -139,11 +141,17 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
           : {}),
         ...(profile?.careSummary ? { careSummary: profile.careSummary } : {}),
       };
+      const nk = normalizeSpeciesNameKey(best.name || "");
+      const relatedArticles =
+        nk.length > 0
+          ? await listArticleSummariesBySpeciesNameKeys(app.prisma, [nk], 8)
+          : [];
       return {
         best: bestOut,
         candidates: filtered,
         speciesProfile: profile,
         speciesProfileSource: source,
+        relatedArticles,
       };
     } catch (e) {
       req.log.warn({ err: String(e) }, "plant_identify_failed");
