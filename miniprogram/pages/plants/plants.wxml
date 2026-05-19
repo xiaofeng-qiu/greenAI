@@ -86,10 +86,13 @@
         <view class="settings-picker">{{labels[tzIndex]}}</view>
       </picker>
     </view>
-    <view class="settings-field">
-      <text class="settings-label">已保存位置（WGS84）</text>
-      <text class="settings-mono">{{locSummary}}</text>
+    <!-- 定位按钮 -->
+    <view class="settings-field settings-field--loc">
       <text wx:if="{{locationReadable}}" class="settings-location-label">{{locationReadable}}</text>
+      <view class="settings-btns">
+        <view class="settings-btn settings-btn--primary" bindtap="onPickLocation">使用当前定位</view>
+        <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
+      </view>
     </view>
     <view class="settings-field">
       <text class="settings-label">当前天气</text>
@@ -100,9 +103,5 @@
     <block wx:for="{{forecastDays}}" wx:key="date">
       <text class="settings-forecast-row">{{item.line}}</text>
     </block>
-    <view class="settings-btns">
-      <view class="settings-btn settings-btn--primary" bindtap="onPickLocation">使用当前定位</view>
-      <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
-    </view>
   </view>
 </view>
