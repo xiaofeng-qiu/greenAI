@@ -1,6 +1,7 @@
-const rawArticles = require("../../data/knowledge.js");
 const { request } = require("../../utils/api.js");
 const { refreshTodayTabBadge } = require("../../utils/tabBadge.js");
+
+const CACHE_KEY = "discover_articles_cache";
 
 function decorateArticles(list) {
   return list.map((a) => {
@@ -14,38 +15,42 @@ function decorateArticles(list) {
 }
 
 Page({
-  data: { allArticles: [], articles: [], searchQuery: "" },
+  data: { articles: [], searchQuery: "" },
   onShow() {
     refreshTodayTabBadge();
   },
   onLoad() {
+    this._articles = [];
     this._searchExtras = [];
     this._searchTimer = null;
-    const list = Array.isArray(rawArticles) ? rawArticles : [];
-    const all = decorateArticles(list);
-    this.setData({ allArticles: all, articles: all });
-    this.tryMergeRemoteArticles();
+    this.loadArticles();
   },
-  async tryMergeRemoteArticles() {
+
+  // ── 缓存优先，仅后端为数据源 ──
+  async loadArticles() {
+    // 1. 显示缓存
+    const cached = wx.getStorageSync(CACHE_KEY);
+    if (Array.isArray(cached) && cached.length > 0) {
+      this._articles = decorateArticles(cached);
+      this.applyFilter((this.data.searchQuery || "").trim().toLowerCase());
+    }
+
+    // 2. 后台刷新
     try {
-      const remote = await request({ path: "/knowledge/articles", method: "GET" });
-      if (!Array.isArray(remote) || remote.length === 0) return;
-      const merged = new Map();
-      for (const a of this.data.allArticles || []) {
-        if (a && a.id != null) merged.set(String(a.id), a);
+      const remote = await request({
+        path: "/knowledge/articles",
+        method: "GET",
+      });
+      if (Array.isArray(remote) && remote.length > 0) {
+        wx.setStorageSync(CACHE_KEY, remote);
+        this._articles = decorateArticles(remote);
+        this.applyFilter((this.data.searchQuery || "").trim().toLowerCase());
       }
-      for (const a of remote) {
-        if (a && a.id != null) merged.set(String(a.id), a);
-      }
-      const combined = decorateArticles([...merged.values()]);
-      combined.sort((x, y) => String(x.title || "").localeCompare(String(y.title || ""), "zh"));
-      this.setData({ allArticles: combined, articles: combined });
-      const q = (this.data.searchQuery || "").trim().toLowerCase();
-      this.applyFilter(q);
     } catch (_) {
-      /* 未登录或接口不可用时保留本地数据 */
+      /* 离线时保留缓存 */
     }
   },
+
   onSearchInput(e) {
     const raw = e.detail.value || "";
     const q = raw.trim().toLowerCase();
@@ -86,13 +91,12 @@ Page({
     this.applyFilter(qNow);
   },
   applyFilter(q) {
-    const all = this.data.allArticles || [];
     if (!q) {
       this._searchExtras = [];
-      this.setData({ articles: all });
+      this.setData({ articles: this._articles });
       return;
     }
-    const filtered = all.filter((a) => {
+    const filtered = this._articles.filter((a) => {
       const hay = `${a.title || ""} ${a.summary || ""} ${a.body || ""}`.toLowerCase();
       return hay.includes(q);
     });
@@ -109,6 +113,8 @@ Page({
   onOpen(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: `/pages/discover-detail/discover-detail?id=${encodeURIComponent(id)}` });
+    wx.navigateTo({
+      url: `/pages/discover-detail/discover-detail?id=${encodeURIComponent(id)}`,
+    });
   },
 });

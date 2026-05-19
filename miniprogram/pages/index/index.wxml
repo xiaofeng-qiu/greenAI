@@ -81,9 +81,5 @@
       <text class="index-act__icon">◇</text>
       <text class="index-act__label">问题诊断</text>
     </view>
-    <view class="index-act" bindtap="onRefresh">
-      <text class="index-act__icon">↻</text>
-      <text class="index-act__label">刷新</text>
-    </view>
   </view>
 </view>

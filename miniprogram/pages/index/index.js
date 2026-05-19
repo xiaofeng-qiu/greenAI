@@ -193,11 +193,6 @@ Page({
 
   /* ── actions ── */
 
-  onRefresh() {
-    wx.showLoading({ title: "刷新中" });
-    this.loadDashboard().finally(() => wx.hideLoading());
-  },
-
   async onSubscribe() {
     wx.requestSubscribeMessage({
       tmplIds: [SUBSCRIBE_TEMPLATE_ID],
