@@ -6,6 +6,9 @@
     <text class="index-hero__summary">{{summaryText}}</text>
   </view>
 
+  <!-- ======== 养护 section ======== -->
+  <text class="index-section-title">养护</text>
+
   <!-- ======== Stats row ======== -->
   <view class="index-stats">
     <view class="index-stat ga-card" bindtap="goPlants">

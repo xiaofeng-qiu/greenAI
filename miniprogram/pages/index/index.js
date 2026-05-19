@@ -89,7 +89,7 @@ Page({
     } else if (plantCount === 0) {
       summaryText = "还没有植物，去添加一盆吧 🌱";
     } else {
-      summaryText = "养护 ✨";
+      summaryText = "";
     }
 
     this.setData({
