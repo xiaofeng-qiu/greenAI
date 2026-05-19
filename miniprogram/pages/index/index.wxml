@@ -7,7 +7,7 @@
   </view>
 
   <!-- ======== 养护 section ======== -->
-  <text class="index-section-title">养护</text>
+  <text class="index-section-title">🌱 养护</text>
 
   <!-- ======== Stats row ======== -->
   <view class="index-stats">
@@ -46,7 +46,7 @@
   </view>
 
   <!-- ======== Section title ======== -->
-  <text class="index-section-title">待办</text>
+  <text class="index-section-title">📋 待办</text>
 
   <!-- ======== Empty state ======== -->
   <view wx:if="{{tasks.length === 0}}" class="index-empty ga-card">
