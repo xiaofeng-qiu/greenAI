@@ -1,29 +1,65 @@
-<view class="page">
-  <view class="field">
-    <text class="label">时区（影响「今日任务」按哪天算）</text>
-    <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
-      <view class="picker-value">{{labels[tzIndex]}}</view>
-    </picker>
+<view class="ga-page settings">
+  <view class="ga-hero settings-hero">
+    <text class="ga-hero__eyebrow">偏好</text>
+    <view class="ga-hero__title">设置</view>
+    <view class="ga-hero__desc">时区决定「今日」边界；位置与天气用于微调浇水节奏。</view>
   </view>
-  <button class="save" type="primary" bindtap="onSave">保存时区</button>
 
-  <view class="section-title">天气（P3 · Open-Meteo，免密钥）</view>
-  <view wx:if="{{needLocationTip}}" class="location-tip">
-    <text class="location-tip-title">环境感知</text>
-    <text class="location-tip-body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方点击「使用当前定位」并允许授权。</text>
+  <view class="ga-section-title">时区</view>
+  <view class="settings-card ga-card">
+    <view class="settings-field">
+      <text class="settings-label">时区（影响「今日任务」按哪天算）</text>
+      <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
+        <view class="settings-picker">{{labels[tzIndex]}}</view>
+      </picker>
+    </view>
+    <view class="settings-primary" bindtap="onSave">保存时区</view>
   </view>
-  <view class="field">
-    <text class="label">已保存位置（WGS84）</text>
-    <text class="mono">{{locSummary}}</text>
+
+  <view class="ga-section-title">天气与环境</view>
+  <view wx:if="{{needLocationTip}}" class="settings-callout ga-card">
+    <text class="settings-callout__title">环境感知</text>
+    <text class="settings-callout__body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方使用「使用当前定位」并允许授权。</text>
   </view>
-  <view class="weather-line">{{weatherLine}}</view>
-  <view wx:if="{{forecastHint}}" class="forecast-hint">{{forecastHint}}</view>
-  <view wx:if="{{forecastDays.length}}" class="forecast-title">未来 3 天预报（按已保存时区）</view>
-  <block wx:for="{{forecastDays}}" wx:key="date">
-    <text class="forecast-row">{{item.line}}</text>
-  </block>
-  <view class="row-btns">
-    <button size="mini" type="primary" bindtap="onPickLocation">使用当前定位</button>
-    <button size="mini" bindtap="onClearLocation">清除位置</button>
+
+  <view class="settings-card ga-card">
+    <view wx:if="{{currentLive}}" class="settings-live">
+      <view class="settings-live-icon settings-live-icon--{{liveWeatherKind}}"></view>
+      <view class="settings-live-texts">
+        <text class="settings-live-temp">{{currentLive.tempC}}°C</text>
+        <text class="settings-live-sub">湿度 {{currentLive.rh}}%</text>
+      </view>
+    </view>
+
+    <view wx:if="{{forecastDays.length}}" class="settings-chart">
+      <text class="settings-chart-title">未来 3 日 · 气温示意</text>
+      <view class="settings-chart-row">
+        <block wx:for="{{forecastDays}}" wx:key="date">
+          <view class="settings-chart-day">
+            <view class="settings-live-icon settings-live-icon--sm settings-live-icon--{{item.weatherKind}}"></view>
+            <text class="settings-chart-dm">{{item.dateShort}}</text>
+            <view class="settings-chart-track">
+              <view class="settings-chart-fill" style="height: {{item.barFillRpx}}rpx;"></view>
+            </view>
+            <text class="settings-chart-hilo">{{item.lo}}° / {{item.hi}}°</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <view class="settings-field">
+      <text class="settings-label">已保存位置（WGS84）</text>
+      <text class="settings-mono">{{locSummary}}</text>
+    </view>
+    <view class="settings-weather">{{weatherLine}}</view>
+    <view wx:if="{{forecastHint}}" class="settings-hint">{{forecastHint}}</view>
+    <view wx:if="{{forecastDays.length}}" class="settings-forecast-head">未来 3 天预报（按已保存时区）</view>
+    <block wx:for="{{forecastDays}}" wx:key="date">
+      <text class="settings-forecast-row">{{item.line}}</text>
+    </block>
+    <view class="settings-btns">
+      <view class="settings-btn settings-btn--primary" bindtap="onPickLocation">使用当前定位</view>
+      <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
+    </view>
   </view>
 </view>

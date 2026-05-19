@@ -1,17 +1,35 @@
-<view class="page">
-  <view class="intro">以下为常见室内植物与养护要点，可结合「我的植物」中的环境与提醒使用。</view>
-  <input
-    class="search-input"
-    placeholder="搜索标题或正文关键词"
-    confirm-type="search"
-    value="{{searchQuery}}"
-    bindinput="onSearchInput"
-  />
-  <view wx:if="{{articles.length === 0}}" class="empty-hint">无匹配条目，请换关键词</view>
+<view class="ga-page discover">
+  <view class="ga-hero discover-hero">
+    <text class="ga-hero__eyebrow">知识库</text>
+    <view class="ga-hero__title">发现</view>
+    <view class="ga-hero__desc">常见室内植物与养护要点，可与「我的植物」中的环境与提醒对照使用。</view>
+  </view>
+
+  <view class="discover-search-wrap ga-card">
+    <input
+      class="discover-search"
+      placeholder="搜索标题或正文关键词"
+      placeholder-class="discover-search-ph"
+      confirm-type="search"
+      value="{{searchQuery}}"
+      bindinput="onSearchInput"
+    />
+  </view>
+
+  <view wx:if="{{articles.length === 0}}" class="discover-empty ga-card">
+    <text class="discover-empty__text">无匹配条目，请尝试其他关键词。</text>
+  </view>
+
   <block wx:for="{{articles}}" wx:key="id">
-    <view class="card" data-id="{{item.id}}" bindtap="onOpen">
-      <text class="card-title">{{item.title}}</text>
-      <text class="card-summary">{{item.summary}}</text>
+    <view class="discover-row ga-card" data-id="{{item.id}}" bindtap="onOpen">
+      <view class="discover-thumb discover-thumb--t{{item.coverTone}}">
+        <text class="discover-thumb__glyph">{{item.thumbGlyph}}</text>
+      </view>
+      <view class="discover-row__body">
+        <text class="discover-row__title">{{item.title}}</text>
+        <text class="discover-row__summary">{{item.summary}}</text>
+      </view>
+      <text class="discover-row__chevron">›</text>
     </view>
   </block>
 </view>

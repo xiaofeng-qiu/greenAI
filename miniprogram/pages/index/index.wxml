@@ -1,31 +1,38 @@
-<view class="page">
-  <view class="toolbar">
-    <button class="btn" size="mini" bindtap="onRefresh">刷新</button>
-    <button class="btn" size="mini" type="primary" bindtap="onSubscribe">订阅提醒</button>
-    <button class="btn" size="mini" bindtap="goSettings">时区</button>
-    <button class="btn" size="mini" bindtap="goDiagnose">诊断</button>
-    <button class="btn" size="mini" bindtap="goAdd">添加植物</button>
+<view class="ga-page index">
+  <view class="ga-hero">
+    <text class="ga-hero__eyebrow">{{heroDate}}</text>
+    <view class="ga-hero__title">今日养护</view>
+    <view class="ga-hero__desc">基于计划与环境的待办；完成后将同步更新提醒节奏。</view>
   </view>
 
-  <view wx:if="{{tasks.length === 0}}" class="empty">今日暂无待办任务</view>
+  <view class="index-toolbar ga-card">
+    <view class="index-toolbar__row">
+      <view class="index-chip index-chip--ghost" bindtap="onRefresh">刷新</view>
+      <view class="index-chip index-chip--accent" bindtap="onSubscribe">订阅提醒</view>
+      <view class="index-chip index-chip--ghost" bindtap="goSettings">设置</view>
+    </view>
+    <view class="index-toolbar__row">
+      <view class="index-chip index-chip--ghost" bindtap="goDiagnose">问题诊断</view>
+      <view class="index-chip index-chip--brand" bindtap="goAdd">＋ 添加植物</view>
+    </view>
+  </view>
+
+  <view wx:if="{{tasks.length === 0}}" class="index-empty ga-card">
+    <view class="index-empty__mark" />
+    <text class="index-empty__title">今日暂无待办</text>
+    <text class="index-empty__hint">添加植物并保存后，将自动生成浇水与施肥任务。</text>
+  </view>
 
   <block wx:for="{{tasks}}" wx:key="id">
-    <view class="task-card task-card--pending">
-      <view class="task-row">
-        <text class="label">植物</text>
-        <text class="value">{{item.plantNickname}}</text>
+    <view class="index-task ga-card">
+      <view class="index-task__head">
+        <view class="index-badge index-badge--{{item.typeClass}}">{{item.displayType}}</view>
+        <text class="index-task__due">{{item.displayDueDate}}</text>
       </view>
-      <view class="task-row">
-        <text class="label">到期</text>
-        <text class="value">{{item.displayDueDate}}</text>
-      </view>
-      <view class="task-row">
-        <text class="label">类型</text>
-        <text class="value">{{item.displayType}}</text>
-      </view>
-      <view class="task-actions">
-        <button class="btn-done" size="mini" type="primary" data-id="{{item.id}}" bindtap="onComplete">完成</button>
-        <button class="btn-skip" size="mini" data-id="{{item.id}}" bindtap="onSkip">跳过</button>
+      <text class="index-task__plant">{{item.plantNickname}}</text>
+      <view class="index-task__foot">
+        <view class="index-pill index-pill--primary" data-id="{{item.id}}" bindtap="onComplete">标记完成</view>
+        <view class="index-pill index-pill--quiet" data-id="{{item.id}}" bindtap="onSkip">跳过</view>
       </view>
     </view>
   </block>

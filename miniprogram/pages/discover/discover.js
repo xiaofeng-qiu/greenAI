@@ -7,7 +7,15 @@ Page({
     refreshTodayTabBadge();
   },
   onLoad() {
-    const all = Array.isArray(rawArticles) ? rawArticles : [];
+    const list = Array.isArray(rawArticles) ? rawArticles : [];
+    const all = list.map((a) => {
+      const title = String(a.title || "").trim();
+      return {
+        ...a,
+        coverTone: typeof a.coverTone === "number" ? a.coverTone : 0,
+        thumbGlyph: title ? title.charAt(0) : "植",
+      };
+    });
     this.setData({ allArticles: all, articles: all });
   },
   onSearchInput(e) {

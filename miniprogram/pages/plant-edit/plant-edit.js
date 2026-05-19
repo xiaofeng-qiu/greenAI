@@ -27,6 +27,7 @@ Page({
   data: {
     plantId: "",
     submitLabel: "保存植物",
+    switchOnColor: "#2a4d3a",
     nickname: "",
     speciesLabel: "",
     waterIndex: 1,

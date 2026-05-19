@@ -9,8 +9,11 @@ const { setTodayTabBadgeFromCount } = require("../../utils/tabBadge.js");
 const LOCATION_INTRO_MODAL_KEY = "greenai_location_intro_modal_done";
 
 Page({
-  data: { tasks: [] },
+  data: { tasks: [], heroDate: "" },
   async onShow() {
+    const now = new Date();
+    const heroDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+    this.setData({ heroDate });
     await this.loadTasks();
     await this.maybePromptLocationOnce();
   },
@@ -25,6 +28,7 @@ Page({
           ? String(t.dueDate).slice(0, 16).replace("T", " ")
           : "",
         displayType: t.type === "water" ? "浇水" : t.type === "fertilize" ? "施肥" : String(t.type || ""),
+        typeClass: t.type === "water" ? "water" : t.type === "fertilize" ? "fertilize" : "other",
       }));
       this.setData({ tasks });
       const n = tasks.length;

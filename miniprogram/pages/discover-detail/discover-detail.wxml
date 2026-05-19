@@ -1,5 +1,24 @@
-<view class="page" wx:if="{{article}}">
-  <text class="title">{{article.title}}</text>
-  <text class="body">{{article.body}}</text>
+<view class="article-root" wx:if="{{article}}">
+  <view class="article-cover article-cover--t{{coverTone}}">
+    <text class="article-cover-kicker">养护知识</text>
+    <text class="article-cover-title">{{article.title}}</text>
+    <text class="article-cover-summary">{{article.summary}}</text>
+  </view>
+
+  <view class="article-scroll ga-page">
+    <block wx:for="{{articleSections}}" wx:key="_key">
+      <view wx:if="{{item.type === 'p'}}" class="article-para ga-card">
+        <text class="article-para__text">{{item.text}}</text>
+      </view>
+      <view wx:elif="{{item.type === 'figure'}}" class="article-figure-card ga-card">
+        <view class="article-figure article-figure--t{{item.figureTone}}"></view>
+        <text class="article-figure-cap">{{item.caption}}</text>
+      </view>
+    </block>
+  </view>
 </view>
-<view wx:else class="empty">未找到该条目</view>
+<view wx:else class="ga-page article article--empty">
+  <view class="article-missing ga-card">
+    <text class="article-missing__text">未找到该条目</text>
+  </view>
+</view>

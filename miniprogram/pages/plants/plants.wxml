@@ -1,18 +1,32 @@
-<view class="page">
-  <view class="toolbar">
-    <button class="btn" type="primary" size="mini" bindtap="goAdd">添加植物</button>
-    <button class="btn" size="mini" bindtap="onRefresh">刷新</button>
+<view class="ga-page plants">
+  <view class="ga-hero plants-hero">
+    <text class="ga-hero__eyebrow">档案</text>
+    <view class="ga-hero__title">我的植物</view>
+    <view class="ga-hero__desc">管理品种、环境与养护节奏；编辑后将自动重算计划。</view>
   </view>
 
-  <view wx:if="{{plants.length === 0}}" class="empty">暂无植物，点击添加</view>
+  <view class="plants-actions ga-card">
+    <view class="plants-actions__primary" bindtap="goAdd">添加植物</view>
+    <view class="plants-actions__ghost" bindtap="onRefresh">同步列表</view>
+  </view>
+
+  <view wx:if="{{plants.length === 0}}" class="plants-empty ga-card">
+    <text class="plants-empty__title">还没有植物</text>
+    <text class="plants-empty__hint">从「添加植物」开始建立你的室内花园档案。</text>
+  </view>
 
   <block wx:for="{{plants}}" wx:key="id">
-    <view class="card">
-      <view class="row title">{{item.nickname}}</view>
-      <view class="row sub">{{item.speciesLabel}}</view>
-      <view class="actions">
-        <button size="mini" type="default" data-id="{{item.id}}" bindtap="goEdit">编辑</button>
-        <button size="mini" type="warn" data-id="{{item.id}}" bindtap="onDelete">删除</button>
+    <view class="plants-card ga-card">
+      <view class="plants-card__main">
+        <view class="plants-avatar">{{item.avatarLetter}}</view>
+        <view class="plants-card__body">
+          <text class="plants-card__name">{{item.nickname}}</text>
+          <text class="plants-card__species">{{item.speciesLabel}}</text>
+        </view>
+      </view>
+      <view class="plants-card__actions">
+        <view class="plants-pill plants-pill--outline" data-id="{{item.id}}" bindtap="goEdit">编辑</view>
+        <view class="plants-pill plants-pill--danger" data-id="{{item.id}}" bindtap="onDelete">删除</view>
       </view>
     </view>
   </block>

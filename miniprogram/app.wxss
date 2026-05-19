@@ -1,0 +1,112 @@
+/**
+ * GreenAI 全局视觉：温室档案 · 克制留白 · 深松绿主色
+ * 变量需基础库 2.9+；各页 root 使用 class="ga-page" 获得一致内边距
+ */
+page {
+  --ga-bg: #e8ece6;
+  --ga-bg-elevated: #f3f6f1;
+  --ga-surface: #ffffff;
+  --ga-surface-glass: rgba(255, 255, 255, 0.92);
+  --ga-text: #152118;
+  --ga-text-secondary: #5a6358;
+  --ga-text-muted: #8b9488;
+  --ga-brand: #2a4d3a;
+  --ga-brand-mid: #3a6b52;
+  --ga-brand-soft: #d4e5dc;
+  --ga-accent: #b8860b;
+  --ga-accent-soft: #f4ead4;
+  --ga-border: rgba(21, 33, 24, 0.08);
+  --ga-border-strong: rgba(21, 33, 24, 0.14);
+  --ga-shadow: 0 8rpx 32rpx rgba(21, 33, 24, 0.06);
+  --ga-radius-sm: 12rpx;
+  --ga-radius-md: 20rpx;
+  --ga-radius-lg: 28rpx;
+  --ga-space: 24rpx;
+  --ga-space-lg: 32rpx;
+  --ga-water: #2f6b8f;
+  --ga-water-soft: #e3eef4;
+  --ga-fertilize: #6b4f2f;
+  --ga-fertilize-soft: #f0e8dc;
+  --ga-danger: #a33c3c;
+  --ga-danger-soft: #fce8e8;
+  --ga-info: #2f5280;
+  --ga-info-soft: #e8f0fb;
+
+  background-color: var(--ga-bg);
+  color: var(--ga-text);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  font-size: 28rpx;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  box-sizing: border-box;
+}
+
+view,
+text,
+input,
+textarea,
+button {
+  box-sizing: border-box;
+}
+
+/* 弱化微信默认按钮描边，便于自定义形态 */
+button::after {
+  border: none;
+}
+
+.ga-page {
+  min-height: 100vh;
+  padding: var(--ga-space) var(--ga-space) calc(var(--ga-space) + env(safe-area-inset-bottom));
+}
+
+.ga-hero {
+  margin-bottom: var(--ga-space-lg);
+}
+
+.ga-hero__eyebrow {
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ga-brand-mid);
+  opacity: 0.85;
+  margin-bottom: 8rpx;
+}
+
+.ga-hero__title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ga-hero__desc {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.5;
+}
+
+.ga-card {
+  background: var(--ga-surface);
+  border-radius: var(--ga-radius-md);
+  box-shadow: var(--ga-shadow);
+  border: 1rpx solid var(--ga-border);
+}
+
+.ga-section-title {
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ga-text-muted);
+  margin: var(--ga-space-lg) 0 16rpx;
+  text-transform: uppercase;
+}
+
+.ga-muted {
+  color: var(--ga-text-muted);
+  font-size: 26rpx;
+  line-height: 1.55;
+}

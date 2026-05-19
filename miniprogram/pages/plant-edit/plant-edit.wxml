@@ -1,49 +1,68 @@
-<view class="page">
-  <view class="field">
-    <text class="field-label">昵称</text>
-    <input class="field-input" placeholder="例如：绿萝" value="{{nickname}}" bindinput="onNicknameInput" />
+<view class="ga-page plant-form">
+  <view class="plant-identify ga-card">
+    <text class="plant-identify-kicker">智能识别</text>
+    <view class="plant-identify-title">拍照识别植物</view>
+    <text class="plant-identify-desc">对准叶片或整盆拍摄，自动解析品种学名，适合快速建档；也可稍后在下方手动填写。</text>
+    <view class="plant-identify-stage">
+      <view class="plant-identify-lens" />
+      <view class="plant-identify-ring" />
+    </view>
+    <view class="plant-identify-cta" bindtap="onIdentifyPlant">拍照识别</view>
   </view>
 
-  <view class="field">
-    <text class="field-label">品种</text>
-    <input class="field-input" placeholder="例如：Epipremnum" value="{{speciesLabel}}" bindinput="onSpeciesInput" />
-    <button class="identify-btn" size="mini" type="default" bindtap="onIdentifyPlant">拍照识别</button>
-    <view wx:if="{{knowledgeLink}}" class="knowledge-link" bindtap="onOpenKnowledge">
-      打开养护知识：{{knowledgeLink.title}}
+  <view class="ga-hero plant-form-hero">
+    <text class="ga-hero__eyebrow">档案</text>
+    <view class="ga-hero__title">植物档案</view>
+    <view class="ga-hero__desc">补充昵称与环境后，浇水与施肥计划会更贴合你的空间。</view>
+  </view>
+
+  <view class="ga-section-title">基础信息</view>
+  <view class="plant-block ga-card">
+    <view class="plant-field">
+      <text class="plant-label">昵称</text>
+      <input class="plant-input" placeholder="例如：客厅绿萝" value="{{nickname}}" bindinput="onNicknameInput" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">品种 / 学名（可手填）</text>
+      <input class="plant-input" placeholder="例如：Epipremnum aureum" value="{{speciesLabel}}" bindinput="onSpeciesInput" />
+      <view wx:if="{{knowledgeLink}}" class="plant-knowledge" bindtap="onOpenKnowledge">查看养护知识：{{knowledgeLink.title}}</view>
     </view>
   </view>
 
-  <view class="field">
-    <text class="field-label">浇水频率</text>
-    <picker mode="selector" range="{{waterLabels}}" value="{{waterIndex}}" bindchange="onWaterChange">
-      <view class="picker-value">{{waterLabels[waterIndex]}}</view>
-    </picker>
+  <view class="ga-section-title">环境与节奏</view>
+  <view class="plant-block ga-card">
+    <view class="plant-field">
+      <text class="plant-label">浇水频率偏好</text>
+      <picker mode="selector" range="{{waterLabels}}" value="{{waterIndex}}" bindchange="onWaterChange">
+        <view class="plant-picker">{{waterLabels[waterIndex]}}</view>
+      </picker>
+    </view>
+    <view class="plant-field plant-field--row">
+      <text class="plant-label plant-label--inline">室内养护</text>
+      <switch color="{{switchOnColor}}" checked="{{indoor}}" bindchange="onIndoorChange" />
+    </view>
+    <view class="plant-field plant-field--row">
+      <text class="plant-label plant-label--inline">供暖环境</text>
+      <switch color="{{switchOnColor}}" checked="{{heating}}" bindchange="onHeatingChange" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">光照条件</text>
+      <picker mode="selector" range="{{lightLabels}}" value="{{lightIndex}}" bindchange="onLightChange">
+        <view class="plant-picker">{{lightLabels[lightIndex]}}</view>
+      </picker>
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">盆土干湿（自评）</text>
+      <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
+        <view class="plant-picker">{{soilLabels[soilIndex]}}</view>
+      </picker>
+      <view class="plant-inline-actions">
+        <view class="plant-link-btn" bindtap="onEstimateSoilPhoto">拍照估算盆土</view>
+      </view>
+    </view>
   </view>
 
-  <view class="field row">
-    <text class="field-label">室内</text>
-    <switch checked="{{indoor}}" bindchange="onIndoorChange" />
+  <view class="plant-submit-wrap">
+    <view class="plant-submit" bindtap="onSubmit">{{submitLabel}}</view>
   </view>
-
-  <view class="field row">
-    <text class="field-label">供暖环境</text>
-    <switch checked="{{heating}}" bindchange="onHeatingChange" />
-  </view>
-
-  <view class="field">
-    <text class="field-label">光照</text>
-    <picker mode="selector" range="{{lightLabels}}" value="{{lightIndex}}" bindchange="onLightChange">
-      <view class="picker-value">{{lightLabels[lightIndex]}}</view>
-    </picker>
-  </view>
-
-  <view class="field">
-    <text class="field-label">盆土干湿（自评）</text>
-    <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
-      <view class="picker-value">{{soilLabels[soilIndex]}}</view>
-    </picker>
-    <button class="identify-btn" size="mini" type="default" bindtap="onEstimateSoilPhoto">拍照估算盆土</button>
-  </view>
-
-  <button class="submit" type="primary" bindtap="onSubmit">{{submitLabel}}</button>
 </view>

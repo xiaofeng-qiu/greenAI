@@ -10,7 +10,15 @@ Page({
   async load() {
     try {
       const raw = await request({ path: "/plants", method: "GET" });
-      this.setData({ plants: Array.isArray(raw) ? raw : [] });
+      const list = Array.isArray(raw) ? raw : [];
+      const plants = list.map((p) => ({
+        ...p,
+        avatarLetter:
+          p.nickname && String(p.nickname).trim()
+            ? String(p.nickname).trim().charAt(0)
+            : "植",
+      }));
+      this.setData({ plants });
     } catch (e) {
       wx.showToast({ title: "加载失败", icon: "none" });
     }

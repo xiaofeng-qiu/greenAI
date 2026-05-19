@@ -9,10 +9,10 @@
     "pages/diagnose/diagnose"
   ],
   "tabBar": {
-    "color": "#666666",
-    "selectedColor": "#1b7a4c",
-    "backgroundColor": "#f7f7f7",
-    "borderStyle": "black",
+    "color": "#8b9488",
+    "selectedColor": "#2a4d3a",
+    "backgroundColor": "#fafbf9",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
@@ -35,7 +35,11 @@
     ]
   },
   "window": {
-    "navigationBarTitleText": "植物管家"
+    "navigationBarTitleText": "植物管家",
+    "navigationBarBackgroundColor": "#1c2e24",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#e8ece6",
+    "backgroundTextStyle": "dark"
   },
   "permission": {
     "scope.userLocation": {

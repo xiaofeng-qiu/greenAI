@@ -33,6 +33,41 @@ function formatForecastDay(d) {
   return parts.join(" · ");
 }
 
+/** Open-Meteo WMO weathercode → 简图标类名 */
+function wmoWeatherKind(code) {
+  if (code == null || typeof code !== "number") return "cloud";
+  if (code === 0 || code === 1) return "sun";
+  if (code === 2 || code === 3) return "cloud";
+  if (code >= 51 && code <= 67) return "rain";
+  if (code >= 71 && code <= 86) return "snow";
+  if (code >= 95) return "storm";
+  if (code >= 45 && code <= 48) return "fog";
+  return "cloud";
+}
+
+function enrichForecastDays(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const temps = raw.flatMap((d) => [d.tempMinC, d.tempMaxC]);
+  const gMin = Math.min(...temps);
+  const gMax = Math.max(...temps);
+  const span = Math.max(gMax - gMin, 1);
+  return raw.map((d) => {
+    const dateShort =
+      typeof d.date === "string" && d.date.length >= 10
+        ? `${d.date.slice(5, 7)}/${d.date.slice(8, 10)}`
+        : String(d.date || "");
+    return {
+      date: d.date,
+      dateShort,
+      line: formatForecastDay(d),
+      hi: Math.round(d.tempMaxC),
+      lo: Math.round(d.tempMinC),
+      weatherKind: wmoWeatherKind(d.weatherCode),
+      barFillRpx: Math.round(36 + ((d.tempMaxC - gMin) / span) * 104),
+    };
+  });
+}
+
 Page({
   data: {
     labels: [...ZONES],
@@ -42,6 +77,8 @@ Page({
     weatherLine: "",
     forecastHint: "",
     forecastDays: [],
+    currentLive: null,
+    liveWeatherKind: "cloud",
   },
   async onShow() {
     await this.loadMeAndWeather();
@@ -65,6 +102,8 @@ Page({
         weatherLine: "",
         forecastHint: "",
         forecastDays: [],
+        currentLive: null,
+        liveWeatherKind: "cloud",
       });
       if (hasLoc) {
         wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
@@ -79,24 +118,27 @@ Page({
           }
           this.setData({
             weatherLine: line,
+            currentLive: {
+              tempC: Math.round(w.temperatureC),
+              rh: Math.round(w.relativeHumidity),
+            },
           });
         } catch (e) {
-          this.setData({ weatherLine: "天气暂不可用" });
+          this.setData({ weatherLine: "天气暂不可用", currentLive: null });
         }
         try {
           const fc = await request({ path: "/weather/forecast", method: "GET" });
           const raw = (fc && fc.days) || [];
-          const forecastDays = raw.map((d) => ({
-            date: d.date,
-            line: formatForecastDay(d),
-          }));
+          const forecastDays = enrichForecastDays(raw);
           let forecastHint = "";
           if (raw.some((d) => (d.precipitationProbabilityMax ?? 0) >= 60)) {
             forecastHint = "未来三天内可能有明显降水，浇水可适当保守。";
           } else if (raw.some((d) => (d.precipitationSumMm ?? 0) > 2)) {
             forecastHint = "预报中有较大降水日，注意盆底排水与通风。";
           }
-          this.setData({ forecastDays, forecastHint });
+          const liveWeatherKind =
+            raw.length > 0 ? wmoWeatherKind(raw[0].weatherCode) : this.data.liveWeatherKind;
+          this.setData({ forecastDays, forecastHint, liveWeatherKind });
         } catch (e) {
           this.setData({ forecastDays: [], forecastHint: "" });
         }
