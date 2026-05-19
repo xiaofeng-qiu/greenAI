@@ -1,41 +1,64 @@
 <view class="ga-page index">
-  <view class="ga-hero">
-    <text class="ga-hero__eyebrow">{{heroDate}}</text>
-    <view class="ga-hero__title">今日养护</view>
-    <view class="ga-hero__desc">基于计划与环境的待办；完成后将同步更新提醒节奏。</view>
+  <!-- ======== Hero ======== -->
+  <view class="index-hero">
+    <text class="ga-hero__eyebrow">{{heroDate}} · {{weekday}}</text>
+    <view class="index-hero__greeting">{{greeting}}</view>
+    <text class="index-hero__summary">{{summaryText}}</text>
   </view>
 
-  <view class="index-toolbar ga-card">
-    <view class="index-toolbar__row">
-      <view class="index-ibtn" bindtap="onRefresh">
-        <text class="index-ibtn__icon">↻</text>
-        <text class="index-ibtn__label">刷新</text>
-      </view>
-      <view class="index-ibtn" bindtap="onSubscribe">
-        <text class="index-ibtn__icon">🔔</text>
-        <text class="index-ibtn__label">订阅提醒</text>
-      </view>
-      <view class="index-ibtn" bindtap="goDiagnose">
-        <text class="index-ibtn__icon">◇</text>
-        <text class="index-ibtn__label">问题诊断</text>
-      </view>
+  <!-- ======== Stats row ======== -->
+  <view class="index-stats">
+    <view class="index-stat ga-card" bindtap="goPlants">
+      <text class="index-stat__num">{{plantCount}}</text>
+      <text class="index-stat__label">植物</text>
     </view>
-    <view class="index-toolbar__row index-toolbar__row--cta">
-      <view class="index-ibtn index-ibtn--brand" bindtap="goAdd">＋ 添加植物</view>
+    <view class="index-stat ga-card">
+      <text class="index-stat__num index-stat__num--accent">{{pendingCount}}</text>
+      <text class="index-stat__label">待办</text>
+    </view>
+    <view class="index-stat ga-card" bindtap="goDiagnose">
+      <text class="index-stat__num index-stat__num--warn">{{attentionCount}}</text>
+      <text class="index-stat__label">需关注</text>
     </view>
   </view>
 
+  <!-- ======== Weather ======== -->
+  <view wx:if="{{weatherCurrent}}" class="index-weather ga-card">
+    <view class="index-weather__head">
+      <text class="index-weather__icon">🌤</text>
+      <text class="index-weather__temp">{{weatherCurrent.temperatureC}}°C</text>
+      <text class="index-weather__sep">·</text>
+      <text class="index-weather__humid">湿度 {{weatherCurrent.relativeHumidity}}%</text>
+    </view>
+    <view wx:if="{{forecastDays.length}}" class="index-forecast">
+      <view wx:for="{{forecastDays}}" wx:key="date" class="index-forecast__day">
+        <text class="index-forecast__dow">{{item.dow}}</text>
+        <text class="index-forecast__icon">{{item.wmoIcon}}</text>
+        <text class="index-forecast__t">{{item.tempMinC}}° / {{item.tempMaxC}}°</text>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="index-weather ga-card index-weather--empty" bindtap="goPlants">
+    <text class="index-weather__placeholder">🌍 保存位置后可查看本地天气</text>
+  </view>
+
+  <!-- ======== Section title ======== -->
+  <text class="ga-section-title">今日待办</text>
+
+  <!-- ======== Empty state ======== -->
   <view wx:if="{{tasks.length === 0}}" class="index-empty ga-card">
     <view class="index-empty__mark" />
-    <text class="index-empty__title">今日暂无待办</text>
-    <text class="index-empty__hint">添加植物并保存后，将自动生成浇水与施肥任务。</text>
+    <text class="index-empty__title">暂无养护待办</text>
+    <text class="index-empty__hint">所有植物已养护完成，今天可以休息一下 ✨</text>
+    <view class="index-empty__act" bindtap="goAdd">＋ 添加植物</view>
   </view>
 
+  <!-- ======== Task list ======== -->
   <block wx:for="{{tasks}}" wx:key="id">
     <view class="index-task ga-card">
       <view class="index-task__head">
         <view class="index-badge index-badge--{{item.typeClass}}">{{item.displayType}}</view>
-        <text class="index-task__due">{{item.displayDueDate}}</text>
+        <text class="index-task__time">{{item.displayTime}}</text>
       </view>
       <text class="index-task__plant">{{item.plantNickname}}</text>
       <view class="index-task__foot">
@@ -44,4 +67,20 @@
       </view>
     </view>
   </block>
+
+  <!-- ======== Quick actions ======== -->
+  <view class="index-actions ga-card">
+    <view class="index-act" bindtap="goAdd">
+      <text class="index-act__icon">＋</text>
+      <text class="index-act__label">添加植物</text>
+    </view>
+    <view class="index-act" bindtap="goDiagnose">
+      <text class="index-act__icon">◇</text>
+      <text class="index-act__label">问题诊断</text>
+    </view>
+    <view class="index-act" bindtap="onRefresh">
+      <text class="index-act__icon">↻</text>
+      <text class="index-act__label">刷新</text>
+    </view>
+  </view>
 </view>

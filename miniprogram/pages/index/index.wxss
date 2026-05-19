@@ -1,55 +1,230 @@
-.index .index-toolbar {
-  padding: 24rpx;
+/* ── Hero ── */
+
+.index-hero {
   margin-bottom: var(--ga-space-lg);
 }
 
-.index-toolbar__row {
+.index-hero__greeting {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 8rpx;
+}
+
+.index-hero__summary {
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Stats row ── */
+
+.index-stats {
+  display: flex;
+  gap: var(--ga-space);
+  margin-bottom: var(--ga-space-lg);
+}
+
+.index-stat {
+  flex: 1;
+  padding: 20rpx 12rpx 16rpx;
+  text-align: center;
+  cursor: pointer;
+}
+
+.index-stat__num {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: var(--ga-brand);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 6rpx;
+}
+
+.index-stat__num--accent {
+  color: var(--ga-water);
+}
+
+.index-stat__num--warn {
+  color: var(--ga-accent);
+}
+
+.index-stat__label {
+  font-size: 22rpx;
+  color: var(--ga-text-muted);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* ── Weather ── */
+
+.index-weather {
+  padding: 24rpx 28rpx;
+  margin-bottom: var(--ga-space-lg);
+}
+
+.index-weather__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.index-weather__icon {
+  font-size: 36rpx;
+  margin-right: 4rpx;
+}
+
+.index-weather__temp {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+}
+
+.index-weather__sep {
+  color: var(--ga-border-strong);
+  font-size: 24rpx;
+}
+
+.index-weather__humid {
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+}
+
+.index-weather--empty {
+  cursor: pointer;
+}
+
+.index-weather__placeholder {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ga-text-muted);
+  text-align: center;
+  padding: 12rpx 0;
+}
+
+/* ── Forecast row ── */
+
+.index-forecast {
   display: flex;
   gap: 12rpx;
+  border-top: 1rpx solid var(--ga-border);
+  padding-top: 16rpx;
 }
 
-.index-toolbar__row--cta {
-  margin-top: 16rpx;
-}
-
-/* ── icon button ── */
-
-.index-ibtn {
+.index-forecast__day {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  padding: 14rpx 8rpx;
-  border-radius: var(--ga-radius-sm);
-  background: var(--ga-bg-elevated);
-  border: 1rpx solid var(--ga-border-strong);
-  color: var(--ga-text);
-  font-weight: 600;
+  gap: 6rpx;
+}
+
+.index-forecast__dow {
   font-size: 22rpx;
-  text-align: center;
-  line-height: 1.2;
+  font-weight: 600;
+  color: var(--ga-text-muted);
 }
 
-.index-ibtn__icon {
-  font-size: 28rpx;
-  flex-shrink: 0;
+.index-forecast__icon {
+  font-size: 32rpx;
 }
 
-.index-ibtn__label {
-  white-space: nowrap;
+.index-forecast__t {
+  font-size: 22rpx;
+  color: var(--ga-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── brand CTA ── */
+/* ── Tasks ── */
 
-.index-ibtn--brand {
-  background: var(--ga-brand);
-  color: #f4faf6;
-  border-color: var(--ga-brand);
-  border-radius: var(--ga-radius-sm);
+.index-task {
+  padding: 28rpx 28rpx 24rpx;
+  margin-bottom: var(--ga-space);
+  border-left: 6rpx solid var(--ga-brand-mid);
+}
+
+.index-task__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.index-task__time {
+  font-size: 24rpx;
+  color: var(--ga-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.index-task__plant {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  letter-spacing: -0.02em;
+  margin-bottom: 24rpx;
+}
+
+.index-task__foot {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+/* ── Badge ── */
+
+.index-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.index-badge--water {
+  background: var(--ga-water-soft);
+  color: var(--ga-water);
+}
+
+.index-badge--fertilize {
+  background: var(--ga-fertilize-soft);
+  color: var(--ga-fertilize);
+}
+
+.index-badge--other {
+  background: var(--ga-brand-soft);
+  color: var(--ga-brand);
+}
+
+/* ── Pill buttons ── */
+
+.index-pill {
+  padding: 16rpx 36rpx;
+  border-radius: 999rpx;
   font-size: 26rpx;
-  padding: 18rpx 24rpx;
+  font-weight: 600;
+  text-align: center;
+  min-width: 160rpx;
 }
+
+.index-pill--primary {
+  background: var(--ga-brand);
+  color: #f6fffa;
+}
+
+.index-pill--quiet {
+  background: transparent;
+  color: var(--ga-text-secondary);
+  border: 1rpx solid var(--ga-border-strong);
+}
+
+/* ── Empty state ── */
 
 .index-empty {
   padding: 48rpx 36rpx;
@@ -79,83 +254,56 @@
   font-size: 26rpx;
   color: var(--ga-text-secondary);
   line-height: 1.55;
-}
-
-.index-task {
-  padding: 28rpx 28rpx 24rpx;
-  margin-bottom: var(--ga-space);
-  border-left: 6rpx solid var(--ga-brand-mid);
-}
-
-.index-task__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16rpx;
-}
-
-.index-task__due {
-  font-size: 24rpx;
-  color: var(--ga-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.index-task__plant {
-  display: block;
-  font-size: 36rpx;
-  font-weight: 700;
-  color: var(--ga-text);
-  letter-spacing: -0.02em;
   margin-bottom: 24rpx;
 }
 
-.index-task__foot {
-  display: flex;
-  gap: 16rpx;
-  flex-wrap: wrap;
-}
-
-.index-badge {
+.index-empty__act {
   display: inline-flex;
   align-items: center;
-  padding: 6rpx 20rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-
-.index-badge--water {
-  background: var(--ga-water-soft);
-  color: var(--ga-water);
-}
-
-.index-badge--fertilize {
-  background: var(--ga-fertilize-soft);
-  color: var(--ga-fertilize);
-}
-
-.index-badge--other {
-  background: var(--ga-brand-soft);
-  color: var(--ga-brand);
-}
-
-.index-pill {
+  gap: 8rpx;
   padding: 16rpx 36rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  text-align: center;
-  min-width: 160rpx;
-}
-
-.index-pill--primary {
   background: var(--ga-brand);
   color: #f6fffa;
+  font-size: 26rpx;
+  font-weight: 600;
 }
 
-.index-pill--quiet {
-  background: transparent;
-  color: var(--ga-text-secondary);
-  border: 1rpx solid var(--ga-border-strong);
+/* ── Quick actions ── */
+
+.index-actions {
+  display: flex;
+  margin-top: var(--ga-space-lg);
+  margin-bottom: var(--ga-space);
+}
+
+.index-act {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 20rpx 8rpx;
+  border-radius: var(--ga-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.index-act:active {
+  background: var(--ga-brand-soft);
+}
+
+.index-act + .index-act {
+  border-left: 1rpx solid var(--ga-border);
+}
+
+.index-act__icon {
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+.index-act__label {
+  font-size: 26rpx;
+  font-weight: 600;
+  white-space: nowrap;
 }

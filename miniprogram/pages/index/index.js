@@ -5,26 +5,119 @@ const {
 } = require("../../utils/api.js");
 const { setTodayTabBadgeFromCount } = require("../../utils/tabBadge.js");
 
-/** After user sees the location intro once (or already has coords), do not show again. */
-const LOCATION_INTRO_MODAL_KEY = "greenai_location_intro_modal_done";
+const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+/**
+ * WMO weather code → emoji icon
+ * https://open-meteo.com/en/docs#weathervariables
+ */
+function wmoIcon(code) {
+  if (code == null) return "🌤";
+  if (code === 0) return "☀️";
+  if (code <= 3) return "🌤";
+  if (code <= 48) return "🌫";
+  if (code <= 57) return "🌦";
+  if (code <= 65) return "🌧";
+  if (code <= 77) return "🌨";
+  if (code <= 82) return "🌦";
+  if (code >= 95) return "⛈";
+  return "🌤";
+}
 
 Page({
-  data: { tasks: [], heroDate: "" },
+  data: {
+    // hero
+    heroDate: "",
+    weekday: "",
+    greeting: "",
+    summaryText: "加载中…",
+
+    // stats
+    plantCount: 0,
+    pendingCount: 0,
+    attentionCount: 0,
+
+    // weather
+    weatherCurrent: null,
+    forecastDays: [],
+
+    // tasks
+    tasks: [],
+  },
+
   async onShow() {
     const now = new Date();
-    const heroDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-    this.setData({ heroDate });
-    await this.loadTasks();
-    await this.maybePromptLocationOnce();
+    const h = now.getHours();
+    let greeting;
+    if (h < 5) greeting = "夜深了";
+    else if (h < 12) greeting = "早上好";
+    else if (h < 18) greeting = "下午好";
+    else greeting = "晚上好";
+
+    this.setData({
+      heroDate: `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
+      weekday: WEEKDAYS[now.getDay()],
+      greeting,
+    });
+
+    await this.loadDashboard();
   },
+
+  async loadDashboard() {
+    // Fire all data fetches in parallel, tolerate partial failures
+    const [tasksRes, plantsRes, weatherRes, forecastRes] = await Promise.allSettled([
+      this.loadTasks(),
+      this.loadPlants(),
+      this.loadWeather(),
+      this.loadForecast(),
+    ]);
+
+    const tasks = tasksRes.status === "fulfilled" ? tasksRes.value : [];
+    const plants = plantsRes.status === "fulfilled" ? plantsRes.value : [];
+    const weatherCurrent = weatherRes.status === "fulfilled" ? weatherRes.value : null;
+    const forecastDays = forecastRes.status === "fulfilled" ? forecastRes.value : [];
+
+    const pendingCount = tasks.length;
+    const plantCount = Array.isArray(plants) ? plants.length : 0;
+
+    // "attention" = plants with overdue tasks (rough heuristic)
+    const attentionCount = pendingCount > 0 ? Math.min(pendingCount, plantCount) : 0;
+
+    let summaryText;
+    if (pendingCount > 0) {
+      summaryText = `今天有 ${pendingCount} 项养护待办`;
+    } else if (plantCount === 0) {
+      summaryText = "还没有植物，去添加一盆吧 🌱";
+    } else {
+      summaryText = "今日养护已完成 ✨";
+    }
+
+    this.setData({
+      tasks,
+      plantCount,
+      pendingCount,
+      attentionCount,
+      weatherCurrent,
+      forecastDays,
+      summaryText,
+    });
+
+    wx.setNavigationBarTitle({
+      title: pendingCount > 0 ? `首页（${pendingCount}）` : "首页",
+    });
+    setTodayTabBadgeFromCount(pendingCount);
+  },
+
+  /* ── data fetches ── */
+
   async loadTasks() {
     try {
       const raw = await request({ path: "/tasks/today", method: "GET" });
       const list = Array.isArray(raw) ? raw : [];
-      const tasks = list.map((t) => ({
-        ...t,
-        plantNickname: t.plant && t.plant.nickname ? t.plant.nickname : "",
-        displayDueDate: t.dueDate
+      return list.map((t) => ({
+        id: t.id,
+        plantNickname: t.plant?.nickname || "",
+        displayTime: t.dueDate
           ? String(t.dueDate).slice(0, 16).replace("T", " ")
           : "",
         displayType:
@@ -35,7 +128,7 @@ Page({
               : t.type === "repot"
                 ? "换盆"
                 : t.type === "inspect"
-                  ? "例行检查"
+                  ? "检查"
                   : String(t.type || ""),
         typeClass:
           t.type === "water"
@@ -44,53 +137,67 @@ Page({
               ? "fertilize"
               : "other",
       }));
-      this.setData({ tasks });
-      const n = tasks.length;
-      if (n > 0) {
-        wx.setNavigationBarTitle({ title: `今日任务（${n}）` });
-      } else {
-        wx.setNavigationBarTitle({ title: "今日任务" });
-      }
-      setTodayTabBadgeFromCount(n);
-    } catch (e) {
-      wx.showToast({ title: "加载失败", icon: "none" });
+    } catch {
+      wx.showToast({ title: "任务加载失败", icon: "none" });
+      return [];
     }
   },
-  /** 首次进入首页且未保存经纬度时，引导去设置页（仅提示一次，本机存储）。 */
-  async maybePromptLocationOnce() {
+
+  async loadPlants() {
     try {
-      if (wx.getStorageSync(LOCATION_INTRO_MODAL_KEY)) return;
-      const me = await request({ path: "/users/me", method: "GET" });
-      const hasLoc =
-        me &&
-        me.latitude != null &&
-        me.longitude != null &&
-        Number.isFinite(Number(me.latitude)) &&
-        Number.isFinite(Number(me.longitude));
-      if (hasLoc) {
-        wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
-        return;
-      }
-      wx.showModal({
-        title: "保存养护位置",
-        content:
-          "保存当前位置后，可结合当地天气与预报微调浇水提醒间隔。是否前往「设置」页开启定位并保存？",
-        confirmText: "去设置",
-        cancelText: "稍后",
-        success: (res) => {
-          wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
-          if (res.confirm) {
-            wx.navigateTo({ url: "/pages/settings/settings" });
-          }
-        },
-      });
-    } catch (_) {
-      /* 未登录或网络失败时不弹窗 */
+      const raw = await request({ path: "/plants", method: "GET" });
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
     }
   },
-  onRefresh() {
-    this.loadTasks();
+
+  async loadWeather() {
+    try {
+      return await request({ path: "/weather/current", method: "GET" });
+    } catch {
+      return null;
+    }
   },
+
+  async loadForecast() {
+    try {
+      const raw = await request({ path: "/weather/forecast", method: "GET" });
+      const days = Array.isArray(raw?.days) ? raw.days : [];
+      const today = new Date();
+      return days.map((d) => ({
+        ...d,
+        dow:
+          d.date === this.dateStr(today)
+            ? "今日"
+            : WEEKDAYS[this.dayOfWeek(d.date)],
+        wmoIcon: wmoIcon(d.weatherCode),
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  /* ── helpers ── */
+
+  dateStr(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  },
+
+  dayOfWeek(dateStr) {
+    return new Date(dateStr + "T12:00:00").getDay();
+  },
+
+  /* ── actions ── */
+
+  onRefresh() {
+    wx.showLoading({ title: "刷新中" });
+    this.loadDashboard().finally(() => wx.hideLoading());
+  },
+
   async onSubscribe() {
     wx.requestSubscribeMessage({
       tmplIds: [SUBSCRIBE_TEMPLATE_ID],
@@ -98,40 +205,49 @@ Page({
         try {
           await reportSubscribeFromWxResult(res);
           wx.showToast({ title: "已更新提醒额度" });
-        } catch (_) {
+        } catch {
           wx.showToast({ title: "上报失败", icon: "none" });
         }
       },
     });
   },
+
   goAdd() {
     wx.navigateTo({ url: "/pages/plant-edit/plant-edit" });
   },
+
   goDiagnose() {
     wx.navigateTo({ url: "/pages/diagnose/diagnose" });
   },
-  goSettings() {
-    wx.navigateTo({ url: "/pages/settings/settings" });
+
+  goPlants() {
+    wx.switchTab({ url: "/pages/plants/plants" });
   },
+
+  goIdentify() {
+    wx.switchTab({ url: "/pages/identify/identify" });
+  },
+
   async onComplete(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     try {
       await request({ path: `/tasks/${id}/complete`, method: "POST", data: {} });
       wx.showToast({ title: "已完成" });
-      this.loadTasks();
-    } catch (err) {
+      this.loadDashboard();
+    } catch {
       wx.showToast({ title: "操作失败", icon: "none" });
     }
   },
+
   async onSkip(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     try {
       await request({ path: `/tasks/${id}/skip`, method: "POST", data: {} });
       wx.showToast({ title: "已跳过" });
-      this.loadTasks();
-    } catch (err) {
+      this.loadDashboard();
+    } catch {
       wx.showToast({ title: "操作失败", icon: "none" });
     }
   },
