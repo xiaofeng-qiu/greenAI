@@ -43,7 +43,7 @@
   </view>
 
   <!-- ======== Section title ======== -->
-  <text class="ga-section-title">今日待办</text>
+  <text class="index-section-title">待办</text>
 
   <!-- ======== Empty state ======== -->
   <view wx:if="{{tasks.length === 0}}" class="index-empty ga-card">

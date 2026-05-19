@@ -139,6 +139,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Section title ── */
+
+.index-section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  margin: var(--ga-space-lg) 0 var(--ga-space);
+  letter-spacing: 0.02em;
+}
+
 /* ── Tasks ── */
 
 .index-task {
