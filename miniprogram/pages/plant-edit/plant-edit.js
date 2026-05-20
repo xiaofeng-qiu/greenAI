@@ -426,8 +426,9 @@ Page({
       indoor,
       heating,
       lightLevel,
-      soilMoistureHint: SOIL_VALUES[soilIndex],
     };
+    const smh = SOIL_VALUES[soilIndex];
+    if (smh != null) body.soilMoistureHint = smh;
     const tf = (taxonFamily || "").trim();
     if (tf) body.taxonFamily = tf;
     const cd = (careDifficulty || "").trim();
