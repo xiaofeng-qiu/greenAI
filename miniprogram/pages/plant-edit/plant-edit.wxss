@@ -68,6 +68,16 @@
   box-shadow: var(--ga-shadow);
 }
 
+.plant-identify-photo {
+  display: block;
+  width: 100%;
+  height: 360rpx;
+  border-radius: var(--ga-radius-sm);
+  margin: 24rpx 0 28rpx;
+  object-fit: cover;
+  background: var(--ga-bg-elevated);
+}
+
 .plant-identify-baike {
   margin-top: 24rpx;
   padding: 22rpx 24rpx;

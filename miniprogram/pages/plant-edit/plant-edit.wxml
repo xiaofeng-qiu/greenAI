@@ -2,7 +2,8 @@
   <view class="plant-identify ga-card">
     <view class="plant-identify-title">拍照识别植物</view>
     <text class="plant-identify-desc">对准叶片或整盆拍摄，自动解析品种学名，适合快速建档；也可稍后在下方手动填写。</text>
-    <view class="plant-identify-stage">
+    <image wx:if="{{identifyPhotoPath}}" class="plant-identify-photo" src="{{identifyPhotoPath}}" mode="aspectFill" />
+    <view wx:else class="plant-identify-stage">
       <view class="plant-identify-lens" />
       <view class="plant-identify-ring" />
     </view>

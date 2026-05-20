@@ -110,6 +110,7 @@ Page({
           p.nickname || ""
         ),
         identifyMeta: null,
+        identifyPhotoPath: null,
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
       this.loadSoilRecords(id);
@@ -327,10 +328,11 @@ Page({
       mediaType: ["image"],
       sourceType: ["album", "camera"],
       success: (pick) => {
-        const path = pick.tempFiles[0].tempFilePath;
+        const photoPath = pick.tempFiles[0].tempFilePath;
+        this.setData({ identifyPhotoPath: photoPath });
         const fs = wx.getFileSystemManager();
         fs.readFile({
-          filePath: path,
+          filePath: photoPath,
           encoding: "base64",
           success: async (fileRes) => {
             wx.showLoading({ title: "识别中", mask: true });
