@@ -273,4 +273,11 @@ Page({
       },
     });
   },
+  /**
+   * 跳转传感器配网向导页。BLE 仅在该向导内为「一次性下发 Wi-Fi 凭据」短暂使用，
+   * 之后所有读数走「设备 → 云端」HTTPS 直连，与小程序无关。
+   */
+  onOpenProvision() {
+    wx.navigateTo({ url: "/pages/device-provision/device-provision" });
+  },
 });

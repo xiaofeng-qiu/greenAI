@@ -12,6 +12,7 @@ import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import prismaPlugin from "../plugins/prisma.js";
 import internalJobsRoutes from "../routes/internalJobs.js";
 import plantsRoutes from "../routes/plants.js";
+import sensorIngestRoutes from "../routes/sensorIngest.js";
 import tasksRoutes from "../routes/tasks.js";
 import { signUserToken } from "../lib/jwt.js";
 
@@ -47,6 +48,7 @@ if (runIntegration) {
   process.env.WECHAT_APPID ||= "integration-test-appid";
   process.env.WECHAT_SECRET ||= "integration-test-secret";
   process.env.CRON_HMAC_SECRET ||= "integration-test-cron-secret-16";
+  process.env.SENSOR_HMAC_SECRET ||= "integration-test-sensor-secret-16";
   process.env.SUBSCRIBE_TEMPLATE_ID ||= "integration-test-template-id";
 }
 
@@ -190,5 +192,109 @@ describe.skipIf(!runIntegration)("API internal — cron HMAC", () => {
     });
     expect(res.statusCode).toBe(401);
     expect(res.json()).toMatchObject({ error: "invalid_signature" });
+  });
+});
+
+describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
+  let app: FastifyInstance | undefined;
+
+  beforeAll(async () => {
+    app = await buildApp(sensorIngestRoutes);
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+  });
+
+  it("POST /internal/sensors/ingest returns 401 when signature invalid", async () => {
+    const res = await app!.inject({
+      method: "POST",
+      url: "/internal/sensors/ingest",
+      headers: {
+        "content-type": "application/json",
+        "x-timestamp": String(Math.floor(Date.now() / 1000)),
+        "x-signature": "00".repeat(32),
+      },
+      payload: JSON.stringify({
+        hardwareId: "test-hw",
+        userId: "test-user",
+        readings: [{ measuredAt: new Date().toISOString(), tempC: 22.5 }],
+      }),
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toMatchObject({ error: "invalid_signature" });
+  });
+
+  it("POST /internal/sensors/ingest accepts a correctly signed batch", async () => {
+    const user = await app!.prisma.user.create({
+      data: { openid: `it-sensor-${randomUUID()}` },
+    });
+    try {
+      const body = JSON.stringify({
+        hardwareId: "hw-abc-001",
+        userId: user.id,
+        readings: [
+          {
+            measuredAt: new Date("2030-06-01T00:00:00.000Z").toISOString(),
+            tempC: 22.4,
+            soilMoisture: 42.5,
+            phLevel: 6.5,
+            lux: 320,
+          },
+          {
+            measuredAt: new Date("2030-06-01T00:15:00.000Z").toISOString(),
+            tempC: 22.6,
+            soilMoisture: 41.8,
+          },
+        ],
+      });
+      const ts = String(Math.floor(Date.now() / 1000));
+      const crypto = await import("node:crypto");
+      const bodyHash = crypto
+        .createHash("sha256")
+        .update(body, "utf8")
+        .digest("hex");
+      const sig = crypto
+        .createHmac("sha256", process.env.SENSOR_HMAC_SECRET as string)
+        .update(`${ts}\n${bodyHash}`)
+        .digest("hex");
+
+      const res = await app!.inject({
+        method: "POST",
+        url: "/internal/sensors/ingest",
+        headers: {
+          "content-type": "application/json",
+          "x-timestamp": ts,
+          "x-signature": sig,
+        },
+        payload: body,
+      });
+      expect(res.statusCode).toBe(200);
+      const json = res.json() as {
+        deviceId: string;
+        inserted: number;
+        deduped: number;
+      };
+      expect(json.inserted).toBe(2);
+      expect(json.deduped).toBe(0);
+      expect(json.deviceId).toMatch(/.+/);
+
+      // Replaying the same batch must be idempotent (unique on deviceId+measuredAt).
+      const replay = await app!.inject({
+        method: "POST",
+        url: "/internal/sensors/ingest",
+        headers: {
+          "content-type": "application/json",
+          "x-timestamp": ts,
+          "x-signature": sig,
+        },
+        payload: body,
+      });
+      expect(replay.statusCode).toBe(200);
+      expect((replay.json() as { inserted: number }).inserted).toBe(0);
+      expect((replay.json() as { deduped: number }).deduped).toBe(2);
+    } finally {
+      await app!.prisma.user.delete({ where: { id: user.id } });
+    }
   });
 });

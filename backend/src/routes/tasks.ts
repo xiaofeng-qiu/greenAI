@@ -5,6 +5,8 @@ import {
   applyWeatherToIntervalDays,
   computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  fusePlantEnvWithSensor,
+  fuseWeatherWithSensor,
   generateFertilizeTasks,
   generateWaterTasks,
   INSPECT_PERIOD_DAYS,
@@ -13,6 +15,7 @@ import {
 import { utcRangeForUserLocalToday } from "../lib/dayRange.js";
 import { authenticate } from "../lib/authGuard.js";
 import { buildPlantEnv } from "../lib/plantCareContext.js";
+import { loadPlantSensorAggregate } from "../lib/sensorAggregate.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
 
 function addUtcDays(d: Date, n: number): Date {
@@ -103,15 +106,19 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       select: { airConditioning: true, windowAspect: true },
     });
 
+    const sensor = await loadPlantSensorAggregate(app.prisma, task.plantId);
     const baseInterval = computeWaterIntervalDays(
       task.plant.waterPreference,
-      buildPlantEnv(task.plant, owner)
+      fusePlantEnvWithSensor(buildPlantEnv(task.plant, owner), sensor)
     );
     const weather = await fetchUserWeatherSnapshot(
       app.prisma,
       task.plant.userId
     );
-    const interval = applyWeatherToIntervalDays(baseInterval, weather);
+    const interval = applyWeatherToIntervalDays(
+      baseInterval,
+      fuseWeatherWithSensor(weather, sensor)
+    );
 
     const horizon = task.plant.carePlan.horizonDays;
     const asOf = new Date();
@@ -198,12 +205,16 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
 
     let bumpDays = 2;
     if (task.type === CareTaskType.water) {
+      const sensor = await loadPlantSensorAggregate(app.prisma, task.plantId);
       const baseInterval = computeWaterIntervalDays(
         task.plant.waterPreference,
-        buildPlantEnv(task.plant, owner)
+        fusePlantEnvWithSensor(buildPlantEnv(task.plant, owner), sensor)
       );
       const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
-      const interval = applyWeatherToIntervalDays(baseInterval, weather);
+      const interval = applyWeatherToIntervalDays(
+        baseInterval,
+        fuseWeatherWithSensor(weather, sensor)
+      );
       bumpDays = Math.max(2, Math.min(10, Math.floor(interval * 0.14)));
       await app.prisma.plant.update({
         where: { id: task.plantId },

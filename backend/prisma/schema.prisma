@@ -146,6 +146,8 @@ model User {
 
   grants    SubscribeGrant[]
 
+  devices   Device[]
+
 }
 
 
@@ -198,6 +200,14 @@ model Plant {
 
   waterSkipStreak    Int      @default(0)
 
+  /// 该植物偏好的土壤 pH 下限（0..14）；与 phPreferredMax 一起用于评估传感器 pH 读数
+
+  phPreferredMin   Float?
+
+  /// 该植物偏好的土壤 pH 上限（0..14）
+
+  phPreferredMax   Float?
+
   createdAt       DateTime        @default(now())
 
   updatedAt       DateTime        @updatedAt
@@ -208,9 +218,99 @@ model Plant {
 
   soilRecords     SoilRecord[]
 
+  devices         Device[]
+
 
 
   @@index([userId])
+
+}
+
+
+
+/// 第三方/自研环境传感器；每个设备隶属一个用户，可选绑定到某株植物
+
+model Device {
+
+  id          String          @id @default(cuid())
+
+  userId      String
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 设备物理标识（厂商序列号或 MAC），与 userId 联合唯一
+
+  hardwareId  String
+
+  /// 设备显示名（用户自定义，可空）
+
+  label       String?
+
+  /// 可选：绑定到具体植物；为空表示房间/位置级测量
+
+  plantId     String?
+
+  plant       Plant?          @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime        @default(now())
+
+  /// 最近一次成功上报时刻（每次 ingest 刷新）
+
+  lastSeenAt  DateTime?
+
+  readings    DeviceReading[]
+
+
+
+  @@unique([userId, hardwareId])
+
+  @@index([userId])
+
+  @@index([plantId])
+
+}
+
+
+
+/// 设备一次采样读数；服务端按 (deviceId, measuredAt) 去重
+
+model DeviceReading {
+
+  id          String   @id @default(cuid())
+
+  deviceId    String
+
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  /// 环境温度 ℃；缺失字段允许为空（不同设备覆盖不同维度）
+
+  tempC         Float?
+
+  /// 土壤湿度（0..100）——探针或电容传感器读数
+
+  soilMoisture  Float?
+
+  /// 土壤 pH（0..14）——pH 探针读数
+
+  phLevel       Float?
+
+  /// 光照 lx
+
+  lux           Float?
+
+  /// 设备上报的测量时刻（设备时钟）
+
+  measuredAt  DateTime
+
+  /// 服务端入库时刻
+
+  createdAt   DateTime @default(now())
+
+
+
+  @@unique([deviceId, measuredAt])
+
+  @@index([deviceId, measuredAt])
 
 }
 
@@ -383,6 +483,14 @@ model SpeciesProfile {
   careDifficulty String?
 
   careSummary    String?
+
+  /// 偏好土壤 pH 下限（0..14）；通常来源于百度百科描述抽取或 LLM 推断
+
+  phPreferredMin Float?
+
+  /// 偏好土壤 pH 上限（0..14）
+
+  phPreferredMax Float?
 
   source         SpeciesProfileSource   @default(llm)
 

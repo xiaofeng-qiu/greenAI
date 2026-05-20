@@ -79,4 +79,11 @@
       <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
     </view>
   </view>
+
+  <view class="ga-section-title">第三方环境监测</view>
+  <view class="settings-card ga-card">
+    <text class="settings-hint-inline">硬件采用「设备直连云端 HTTPS」上报。配网（让设备拿到家里 Wi-Fi 密码）一次完成；之后所有读数自动入库并按植物展示在「植物 → 传感器与图表」中。</text>
+    <view class="settings-primary settings-primary--secondary settings-mt" bindtap="onOpenProvision">前往配网向导</view>
+    <text class="settings-hint-inline">完整架构与合规清单见工程文档：docs/engineering/miniprogram-third-party-sensors.md。</text>
+  </view>
 </view>

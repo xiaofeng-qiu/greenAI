@@ -12,6 +12,9 @@ import {
   applyWeatherToIntervalDays,
   computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  evaluatePhAgainstPreference,
+  fusePlantEnvWithSensor,
+  fuseWeatherWithSensor,
   generateFertilizeTasks,
   generateWaterTasks,
   INSPECT_PERIOD_DAYS,
@@ -21,6 +24,7 @@ import {
 import { loadConfig, isBaiduPlantIdentifyConfigured, resolveDiagnoseLlmSettings } from "../config.js";
 import { authenticate } from "../lib/authGuard.js";
 import { buildPlantEnv } from "../lib/plantCareContext.js";
+import { loadPlantSensorAggregate } from "../lib/sensorAggregate.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
 import {
   extractTaxonFamilyFromText,
@@ -126,6 +130,8 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
           displayName: best.name,
           taxonFamilyHint: best.taxonFamily,
           baikeDescription: best.baikeDescription,
+          phPreferredMinHint: best.phPreferredMin,
+          phPreferredMaxHint: best.phPreferredMax,
         },
         llm
       );
@@ -140,6 +146,10 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
           ? { careDifficulty: profile.careDifficulty }
           : {}),
         ...(profile?.careSummary ? { careSummary: profile.careSummary } : {}),
+        phPreferredMin:
+          best.phPreferredMin ?? profile?.phPreferredMin ?? undefined,
+        phPreferredMax:
+          best.phPreferredMax ?? profile?.phPreferredMax ?? undefined,
       };
       const nk = normalizeSpeciesNameKey(best.name || "");
       const relatedArticles =
@@ -166,7 +176,20 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       where: { id, userId: req.userId! },
     });
     if (!plant) return reply.status(404).send({ error: "not_found" });
-    return plant;
+    const sensor = await loadPlantSensorAggregate(app.prisma, id);
+    const nameKey = normalizeSpeciesNameKey(plant.speciesLabel || "");
+    const profile = nameKey
+      ? await app.prisma.speciesProfile.findUnique({
+          where: { nameKey },
+          select: { phPreferredMin: true, phPreferredMax: true },
+        })
+      : null;
+    const phEvaluation = evaluatePhAgainstPreference(
+      sensor?.phLevel ?? null,
+      profile?.phPreferredMin,
+      profile?.phPreferredMax
+    );
+    return { ...plant, phEvaluation };
   });
 
   app.get("/plants", async (req) => {
@@ -337,12 +360,16 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       select: { airConditioning: true, windowAspect: true },
     });
 
+    const sensor = await loadPlantSensorAggregate(app.prisma, id);
     const baseInterval = computeWaterIntervalDays(
       plant.waterPreference,
-      buildPlantEnv(plant, user)
+      fusePlantEnvWithSensor(buildPlantEnv(plant, user), sensor)
     );
     const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
-    const interval = applyWeatherToIntervalDays(baseInterval, weather);
+    const interval = applyWeatherToIntervalDays(
+      baseInterval,
+      fuseWeatherWithSensor(weather, sensor)
+    );
 
     await app.prisma.$transaction([
       app.prisma.careTask.deleteMany({

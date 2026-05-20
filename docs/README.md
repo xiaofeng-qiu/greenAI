@@ -28,6 +28,7 @@
 |------|------|------|
 | [writing-standard.md](./writing-standard.md) | 规范 | 文档结构、内容、排版与禁止项 |
 | [engineering/deployment.md](./engineering/deployment.md) | 运维 | 环境变量、Compose、本机 Node、Cron、排错 |
+| [engineering/miniprogram-third-party-sensors.md](./engineering/miniprogram-third-party-sensors.md) | 工程 | 小程序对接第三方 BLE / Wi-Fi 传感器（架构与合规） |
 | [knowledge/knowledge-base-layered-search-design.md](./knowledge/knowledge-base-layered-search-design.md) | 设计 | 知识库分层与搜索 |
 | [knowledge/knowledge-base-data-sourcing.md](./knowledge/knowledge-base-data-sourcing.md) | 设计 | 知识数据来源与进库治理 |
 | [superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md](./superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md) | 规格 | MVP 工程设计 |

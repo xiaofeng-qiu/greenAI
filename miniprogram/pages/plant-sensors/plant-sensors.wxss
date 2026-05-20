@@ -1,0 +1,132 @@
+.sensors {
+  padding-bottom: 120rpx;
+}
+.sensors-muted {
+  color: #6b7d70;
+  font-size: 26rpx;
+  text-align: center;
+}
+.sensors-ph {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  border-left: 8rpx solid #2a4d3a;
+}
+.sensors-ph__kicker {
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: #6b7d70;
+}
+.sensors-ph__label {
+  font-size: 36rpx;
+  color: #1c2e24;
+  font-weight: 600;
+}
+.sensors-ph__range {
+  font-size: 24rpx;
+  color: #6b7d70;
+}
+.sensors-ph--optimal { border-left-color: #2a4d3a; }
+.sensors-ph--too_acidic { border-left-color: #c1543a; }
+.sensors-ph--too_alkaline { border-left-color: #5a6db4; }
+
+.sensors-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.sensors-metric__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sensors-metric__label {
+  font-size: 28rpx;
+  color: #1c2e24;
+}
+.sensors-metric__value {
+  font-size: 40rpx;
+  font-weight: 600;
+}
+.sensors-metric__unit {
+  font-size: 24rpx;
+  margin-left: 6rpx;
+  color: #6b7d70;
+  font-weight: normal;
+}
+.sensors-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 4rpx;
+  height: 96rpx;
+  padding: 4rpx 0;
+}
+.sensors-spark__bar {
+  flex: 1;
+  min-height: 4rpx;
+  border-radius: 2rpx 2rpx 0 0;
+  opacity: 0.85;
+}
+.sensors-spark__bar--miss {
+  background: #d5d9d3 !important;
+  opacity: 0.4;
+}
+
+.sensors-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.sensors-device__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  flex: 1;
+  min-width: 0;
+}
+.sensors-device__name {
+  font-size: 28rpx;
+  color: #1c2e24;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sensors-device__meta {
+  font-size: 24rpx;
+  color: #6b7d70;
+}
+.sensors-device__btn {
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+.sensors-device__btn--primary {
+  background: #2a4d3a;
+  color: #fafbf9;
+}
+.sensors-device__btn--ghost {
+  background: transparent;
+  color: #c1543a;
+  border: 2rpx solid #d8c6c1;
+}
+
+.sensors-actions {
+  display: flex;
+  gap: 16rpx;
+  justify-content: center;
+  margin-top: 24rpx;
+}
+.sensors-actions__btn {
+  flex: 1;
+  background: #fafbf9;
+  border: 2rpx solid #d5d9d3;
+  color: #1c2e24;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  text-align: center;
+}

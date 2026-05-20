@@ -1,0 +1,66 @@
+<view class="ga-page sensors">
+  <view class="ga-hero">
+    <text class="ga-hero__eyebrow">传感器</text>
+    <view class="ga-hero__title">{{title || "传感器与图表"}}</view>
+    <view wx:if="{{latestAt}}" class="ga-hero__desc">最近读数：{{latestAt}}（窗口 {{windowHours}} 小时）</view>
+    <view wx:elif="{{!loading && !errorMsg}}" class="ga-hero__desc">本植物近 {{windowHours}} 小时尚无传感器读数。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="ga-card sensors-muted">加载中…</view>
+  <view wx:elif="{{errorMsg}}" class="ga-card sensors-muted">{{errorMsg}}</view>
+
+  <block wx:else>
+    <view wx:if="{{phStatusKey !== 'unknown'}}" class="ga-card sensors-ph sensors-ph--{{phStatusKey}}">
+      <text class="sensors-ph__kicker">pH 评估</text>
+      <text class="sensors-ph__label">{{phStatusLabel}}</text>
+      <text wx:if="{{phRangeText}}" class="sensors-ph__range">{{phRangeText}}</text>
+    </view>
+
+    <block wx:for="{{metrics}}" wx:key="key" wx:for-item="m">
+      <view class="ga-card sensors-metric">
+        <view class="sensors-metric__head">
+          <text class="sensors-metric__label">{{m.label}}</text>
+          <text class="sensors-metric__value" style="color:{{m.color}};">{{m.latestText}}<text class="sensors-metric__unit">{{m.unit}}</text></text>
+        </view>
+        <view class="sensors-spark">
+          <block wx:for="{{m.bars}}" wx:key="*this" wx:for-item="b" wx:for-index="bi">
+            <view class="sensors-spark__bar {{b.missing ? 'sensors-spark__bar--miss' : ''}}" style="height:{{b.pct}}%;background:{{b.color}};"></view>
+          </block>
+        </view>
+      </view>
+    </block>
+
+    <view class="ga-section-title">已绑定设备</view>
+    <view wx:if="{{boundDevices.length === 0}}" class="ga-card sensors-muted">
+      尚未绑定任何传感器到本植物。
+    </view>
+    <block wx:for="{{boundDevices}}" wx:key="id">
+      <view class="ga-card sensors-device">
+        <view class="sensors-device__main">
+          <text class="sensors-device__name">{{item.displayName}}</text>
+          <text class="sensors-device__meta">最近上报：{{item.lastSeenText}}</text>
+        </view>
+        <view class="sensors-device__btn sensors-device__btn--ghost" data-id="{{item.id}}" bindtap="onUnbindDevice">解绑</view>
+      </view>
+    </block>
+
+    <view class="ga-section-title">其他设备</view>
+    <view wx:if="{{candidateDevices.length === 0}}" class="ga-card sensors-muted">
+      暂无可绑定的设备。请先在「设置 → 第三方环境监测 → 前往配网向导」中完成配网。
+    </view>
+    <block wx:for="{{candidateDevices}}" wx:key="id">
+      <view class="ga-card sensors-device">
+        <view class="sensors-device__main">
+          <text class="sensors-device__name">{{item.displayName}}</text>
+          <text class="sensors-device__meta">最近上报：{{item.lastSeenText}}{{item.boundElsewhere ? "（已绑定到其他植物）" : ""}}</text>
+        </view>
+        <view class="sensors-device__btn sensors-device__btn--primary" data-id="{{item.id}}" bindtap="onBindDevice">绑定到此植物</view>
+      </view>
+    </block>
+
+    <view class="sensors-actions">
+      <view class="sensors-actions__btn" bindtap="onRefresh">刷新</view>
+      <view class="sensors-actions__btn" bindtap="onGoProvision">添加新设备</view>
+    </view>
+  </block>
+</view>

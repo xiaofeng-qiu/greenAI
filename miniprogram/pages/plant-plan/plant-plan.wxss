@@ -57,6 +57,9 @@
 .plant-plan-actions {
   padding: 20rpx 24rpx;
   margin-bottom: var(--ga-space);
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
 }
 
 .plant-plan-refresh {
@@ -67,6 +70,12 @@
   font-weight: 600;
   color: var(--ga-brand);
   border: 1rpx solid var(--ga-border-strong);
+  text-decoration: none;
+}
+.plant-plan-refresh--secondary {
+  background: var(--ga-brand);
+  color: #fafbf9;
+  border-color: var(--ga-brand);
 }
 
 .plant-plan-muted,

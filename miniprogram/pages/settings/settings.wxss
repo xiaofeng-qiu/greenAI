@@ -36,6 +36,10 @@
   color: var(--ga-text-muted);
 }
 
+.settings-mt {
+  margin-top: 28rpx;
+}
+
 .settings-live {
   display: flex;
   align-items: center;

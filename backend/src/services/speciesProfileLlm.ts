@@ -6,6 +6,9 @@ const OutSchema = z.object({
   careDifficulty: z.enum(["新手", "进阶", "专家"]),
   careSummary: z.string().min(10).max(1200),
   taxonFamily: z.string().max(120).optional(),
+  /** 0..14；不确定可省略或返回 null */
+  phPreferredMin: z.number().min(0).max(14).nullable().optional(),
+  phPreferredMax: z.number().min(0).max(14).nullable().optional(),
 });
 
 export type SpeciesProfileLlmResult = z.infer<typeof OutSchema>;
@@ -13,8 +16,8 @@ export type SpeciesProfileLlmResult = z.infer<typeof OutSchema>;
 const SYSTEM = `你是家庭园艺知识库维护助手。只根据用户给出的植物中文俗名/学名与可选的百科摘要片段，推断该植物对普通爱好者的养护难度与要点。
 硬性要求：
 1) 只输出一个 JSON 对象本身，不要使用 markdown 围栏，不要其它文字。
-2) 键名固定：careDifficulty（字符串，必须是以下之一：新手、进阶、专家）、careSummary（string，80～300 字中文，浇水/光照/越冬等可执行要点）、taxonFamily（string，可选，科属如「天南星科」；不确定则省略或空字符串）。
-3) 保守：信息不足时宁可 careDifficulty=进阶，careSummary 中说明「信息有限、建议核对百科」。
+2) 键名固定：careDifficulty（字符串，必须是以下之一：新手、进阶、专家）、careSummary（string，80～300 字中文，浇水/光照/越冬等可执行要点）、taxonFamily（string，可选，科属如「天南星科」；不确定则省略或空字符串）、phPreferredMin / phPreferredMax（number，可选，0..14，土壤偏好 pH 区间；不确定则一律省略而非乱猜）。
+3) 保守：信息不足时宁可 careDifficulty=进阶，careSummary 中说明「信息有限、建议核对百科」；pH 不确定时省略 phPreferredMin / phPreferredMax。
 4) 不要编造具体拉丁学名双名法（除非用户文本里已出现）。`;
 
 export async function inferSpeciesProfileWithLlm(input: {

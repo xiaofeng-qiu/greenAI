@@ -195,6 +195,180 @@ export function forecastIntervalMultiplier(bias: number | undefined): number {
   return 1 + t * 0.07;
 }
 
+/**
+ * 设备读数绑定到单株植物后，近期样本的聚合值。
+ * 某个字段为 `null` 表示该传感器不提供该维度，融合时退回到天气 / 用户自报。
+ *
+ * 典型四合一探针提供：环境温度、土壤湿度 %、pH、光照 lx。
+ * **传感器不测空气相对湿度**，空气 RH 仍由 Open-Meteo 提供。
+ */
+export type SensorAggregate = {
+  tempC: number | null;
+  /** 土壤湿度（0..100）——驱动 `soilMoistureHint` 覆盖 */
+  soilMoisture: number | null;
+  /** 土壤 pH（0..14）——当前仅入库，careEngine 未使用 */
+  phLevel: number | null;
+  lux: number | null;
+  /** 本批贡献读数中最新的 measuredAt，供上层判断新鲜度。 */
+  measuredAt: Date;
+};
+
+/** lux → LightLevel 分档（室内粗颗粒徵值）。 */
+export function lightLevelFromLux(lux: number): LightLevel {
+  if (!Number.isFinite(lux)) return "medium";
+  if (lux < 500) return "low";
+  if (lux < 3000) return "medium";
+  return "high";
+}
+
+/** 土壤湿度百分比 → `SoilMoistureHint` 分档（席艺常规粗颗粒阈值）。 */
+export function soilMoistureHintFromPercent(pct: number): SoilMoistureHint {
+  if (!Number.isFinite(pct)) return "moderate";
+  if (pct < 15) return "very_dry";
+  if (pct < 30) return "dry";
+  if (pct < 55) return "moderate";
+  if (pct < 75) return "wet";
+  return "very_wet";
+}
+/** 当植物未填写偏好范围时使用的通用园艺土壤 pH 适宜区间。 */
+export const DEFAULT_PH_PREFERRED_MIN = 6.0;
+export const DEFAULT_PH_PREFERRED_MAX = 7.0;
+
+export type PhStatus =
+  /** 传感器无 pH 读数或参数不合法 */
+  | "unknown"
+  /** ph < preferredMin */
+  | "too_acidic"
+  /** preferredMin ≤ ph ≤ preferredMax */
+  | "optimal"
+  /** ph > preferredMax */
+  | "too_alkaline";
+
+export type PhEvaluation = {
+  status: PhStatus;
+  /** 实际用于判断的 pH 读数；`unknown` 时为 null */
+  ph: number | null;
+  /** 实际使用的偏好下限（plant 未填则回落到 `DEFAULT_PH_PREFERRED_MIN`） */
+  preferredMin: number;
+  /** 实际使用的偏好上限（plant 未填则回落到 `DEFAULT_PH_PREFERRED_MAX`） */
+  preferredMax: number;
+  /** 是否使用了默认区间（未提供任何偏好） */
+  usedDefaultRange: boolean;
+};
+
+/**
+ * 根据**该植物的偏好 pH 区间**评估传感器 pH 读数。
+ *
+ *  - `ph` 为空 / 非有限数：返回 `unknown`，不报警
+ *  - `ph < preferredMin`：`too_acidic`（建议调高 pH：石灰、草木灰、换土等）
+ *  - `ph > preferredMax`：`too_alkaline`（建议调低 pH：硫磺粉、酸性肥、换土等）
+ *  - 否则：`optimal`
+ *
+ * 仅做**展示 / 提示**用途，**不参与浇水间隔计算**——pH 异常通过换土或调节剂解决，
+ * 不应通过改变浇水频率来弥补。
+ */
+export function evaluatePhAgainstPreference(
+  ph: number | null | undefined,
+  preferredMin?: number | null,
+  preferredMax?: number | null
+): PhEvaluation {
+  const usedDefaultRange =
+    (preferredMin == null || !Number.isFinite(preferredMin)) &&
+    (preferredMax == null || !Number.isFinite(preferredMax));
+  let min =
+    preferredMin != null && Number.isFinite(preferredMin)
+      ? preferredMin
+      : DEFAULT_PH_PREFERRED_MIN;
+  let max =
+    preferredMax != null && Number.isFinite(preferredMax)
+      ? preferredMax
+      : DEFAULT_PH_PREFERRED_MAX;
+  if (min > max) {
+    // 用户输入反了，宽容地交换而不是报错（zod 已在写入路径做过 refine）。
+    [min, max] = [max, min];
+  }
+  if (ph == null || !Number.isFinite(ph)) {
+    return {
+      status: "unknown",
+      ph: null,
+      preferredMin: min,
+      preferredMax: max,
+      usedDefaultRange,
+    };
+  }
+  if (ph < min) {
+    return {
+      status: "too_acidic",
+      ph,
+      preferredMin: min,
+      preferredMax: max,
+      usedDefaultRange,
+    };
+  }
+  if (ph > max) {
+    return {
+      status: "too_alkaline",
+      ph,
+      preferredMin: min,
+      preferredMax: max,
+      usedDefaultRange,
+    };
+  }
+  return {
+    status: "optimal",
+    ph,
+    preferredMin: min,
+    preferredMax: max,
+    usedDefaultRange,
+  };
+}
+/**
+ * 传感器上推比用户自报更准，有读数时覆盖对应维度：
+ *  - `lux`  → 覆盖 `env.lightLevel`
+ *  - `soilMoisture` → 覆盖 `env.soilMoistureHint`
+ * 未提供的维度保留原值；`phLevel` 当前不参与计算。
+ */
+export function fusePlantEnvWithSensor(
+  env: PlantEnv,
+  sensor: SensorAggregate | null | undefined
+): PlantEnv {
+  if (!sensor) return env;
+  let next: PlantEnv = env;
+  if (sensor.lux != null && Number.isFinite(sensor.lux)) {
+    next = { ...next, lightLevel: lightLevelFromLux(sensor.lux) };
+  }
+  if (
+    sensor.soilMoisture != null &&
+    Number.isFinite(sensor.soilMoisture)
+  ) {
+    next = {
+      ...next,
+      soilMoistureHint: soilMoistureHintFromPercent(sensor.soilMoisture),
+    };
+  }
+  return next;
+}
+
+/**
+ * 将传感器的 `tempC` 覆盖到 `WeatherSnapshot.temperatureC`（室内微环境比室外天气更贴近植物实际感受）。
+ * `relativeHumidity` 保留天气原值——传感器不测空气湿度；`upcomingWetBias` / `upcomingDryBias` 同理保留。
+ * 传感器无 tempC 或天气为空时返回原 `weather`。
+ */
+export function fuseWeatherWithSensor(
+  weather: WeatherSnapshot | null | undefined,
+  sensor: SensorAggregate | null | undefined
+): WeatherSnapshot | null | undefined {
+  if (!sensor) return weather;
+  if (sensor.tempC == null || !Number.isFinite(sensor.tempC)) return weather;
+  if (!weather) return weather;
+  return {
+    temperatureC: sensor.tempC,
+    relativeHumidity: weather.relativeHumidity,
+    upcomingWetBias: weather.upcomingWetBias,
+    upcomingDryBias: weather.upcomingDryBias,
+  };
+}
+
 export function applyWeatherToIntervalDays(
   baseIntervalDays: number,
   w?: WeatherSnapshot | null

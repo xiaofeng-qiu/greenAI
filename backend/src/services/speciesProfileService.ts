@@ -13,6 +13,10 @@ export async function findOrCreateSpeciesProfile(
     displayName: string;
     taxonFamilyHint?: string | null;
     baikeDescription?: string | null;
+    /** 百科抽取得到的偏好 pH 下限（0..14） */
+    phPreferredMinHint?: number | null;
+    /** 百科抽取得到的偏好 pH 上限（0..14） */
+    phPreferredMaxHint?: number | null;
   },
   llm: DiagnoseLlmSettings | null
 ): Promise<{
@@ -55,6 +59,20 @@ export async function findOrCreateSpeciesProfile(
     (input.taxonFamilyHint?.trim() ?? null) ||
     null;
 
+  // pH 优先用百科抽取 hint（硬事实），其次 LLM 推断；都没有则 null。
+  const clampPh = (v: number | null | undefined): number | null => {
+    if (v == null || !Number.isFinite(v)) return null;
+    if (v < 0 || v > 14) return null;
+    return v;
+  };
+  let phMin =
+    clampPh(input.phPreferredMinHint) ?? clampPh(inferred.phPreferredMin);
+  let phMax =
+    clampPh(input.phPreferredMaxHint) ?? clampPh(inferred.phPreferredMax);
+  if (phMin != null && phMax != null && phMin > phMax) {
+    [phMin, phMax] = [phMax, phMin];
+  }
+
   try {
     const created = await prisma.speciesProfile.create({
       data: {
@@ -63,6 +81,8 @@ export async function findOrCreateSpeciesProfile(
         taxonFamily: taxonFamily ? taxonFamily.slice(0, 120) : null,
         careDifficulty: inferred.careDifficulty,
         careSummary: inferred.careSummary.slice(0, 2000),
+        phPreferredMin: phMin,
+        phPreferredMax: phMax,
         source: SpeciesProfileSource.llm,
       },
     });

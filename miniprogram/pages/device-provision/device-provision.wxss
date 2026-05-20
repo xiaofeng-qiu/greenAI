@@ -1,0 +1,70 @@
+.provision {
+  padding-bottom: 96rpx;
+}
+.provision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.provision-card__kicker {
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+  color: #6b7d70;
+  text-transform: uppercase;
+}
+.provision-line {
+  font-size: 28rpx;
+  color: #1c2e24;
+  line-height: 1.6;
+}
+.provision-step {
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+  padding: 8rpx 0;
+}
+.provision-step__num {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 24rpx;
+  background: #2a4d3a;
+  color: #fafbf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+.provision-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.provision-step__title {
+  font-size: 28rpx;
+  color: #1c2e24;
+  font-weight: 600;
+}
+.provision-step__desc {
+  font-size: 24rpx;
+  color: #6b7d70;
+  line-height: 1.6;
+}
+.provision-card--note {
+  background: #f1f4ef;
+}
+.provision-actions {
+  margin-top: 24rpx;
+  display: flex;
+  justify-content: center;
+}
+.ga-button {
+  padding: 18rpx 56rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+.ga-button--primary {
+  background: #2a4d3a;
+  color: #fafbf9;
+}

@@ -1,0 +1,36 @@
+<view class="ga-page provision">
+  <view class="ga-hero">
+    <text class="ga-hero__eyebrow">配网</text>
+    <view class="ga-hero__title">传感器接入</view>
+    <view class="ga-hero__desc">设备通电后通过家庭 Wi-Fi 把读数直接上报到云端；小程序只负责一次性把 Wi-Fi 凭据写入设备。</view>
+  </view>
+
+  <view class="ga-card provision-card">
+    <text class="provision-card__kicker">支持的硬件形态</text>
+    <text class="provision-line">· ESP32-C3 / ESP32-S3 + 自研固件（推荐）</text>
+    <text class="provision-line">· 兼容 Tuya / Aqara 等开放云的 Wi-Fi 传感器（经厂商云中转）</text>
+    <text class="provision-line">· 出厂预置 4G / NB-IoT 模组：无需配网，开机即上报</text>
+  </view>
+
+  <view class="ga-card provision-card">
+    <text class="provision-card__kicker">配网步骤（BLE 直连）</text>
+    <block wx:for="{{steps}}" wx:key="n">
+      <view class="provision-step">
+        <view class="provision-step__num">{{item.n}}</view>
+        <view class="provision-step__body">
+          <text class="provision-step__title">{{item.title}}</text>
+          <text class="provision-step__desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="ga-card provision-card provision-card--note">
+    <text class="provision-card__kicker">说明</text>
+    <text class="provision-line">数据通路始终是「设备 → 云端」HTTPS 直连，**不依赖小程序常驻**。BLE 只在首次配网或更换路由器时短暂使用一次。</text>
+  </view>
+
+  <view class="provision-actions">
+    <view class="ga-button ga-button--primary" bindtap="onContact">开始配网</view>
+  </view>
+</view>
