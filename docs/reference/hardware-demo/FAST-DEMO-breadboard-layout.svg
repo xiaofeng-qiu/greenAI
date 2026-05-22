@@ -1,0 +1,278 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 920" font-family="'Helvetica Neue', Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif">
+  <defs>
+    <pattern id="holes" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="1.4" fill="#cfc3a3"/>
+    </pattern>
+  </defs>
+
+  <!-- Page background -->
+  <rect width="1400" height="920" fill="#f5f1e8"/>
+
+  <!-- Title -->
+  <text x="700" y="40" text-anchor="middle" font-size="22" font-weight="700" fill="#1c2e24">快速 Demo · 面包板布线俯视图</text>
+  <text x="700" y="64" text-anchor="middle" font-size="13" fill="#666">ESP32-DevKitC + OLED + SHT40 + BH1750 + 土壤模块 + pH 模块（可选） + DFPlayer Mini + 喇叭</text>
+
+  <!-- Breadboard outline -->
+  <rect x="80" y="90" width="1240" height="750" rx="14" fill="#fdfaf3" stroke="#b8a87a" stroke-width="2"/>
+
+  <!-- top 3V3 rail -->
+  <rect x="80" y="100" width="1240" height="30" fill="#fce5e5" stroke="#d04545" stroke-width="1.5"/>
+  <line x1="100" y1="115" x2="1300" y2="115" stroke="#d04545" stroke-width="2"/>
+  <text x="105" y="121" font-size="11" font-weight="700" fill="#a01818">+ 3V3</text>
+  <text x="1295" y="121" text-anchor="end" font-size="11" font-weight="700" fill="#a01818">+ 3V3</text>
+
+  <!-- top GND rail -->
+  <rect x="80" y="140" width="1240" height="30" fill="#e5ecf5" stroke="#3a64a8" stroke-width="1.5"/>
+  <line x1="100" y1="155" x2="1300" y2="155" stroke="#3a64a8" stroke-width="2"/>
+  <text x="105" y="161" font-size="11" font-weight="700" fill="#1f4373">− GND</text>
+  <text x="1295" y="161" text-anchor="end" font-size="11" font-weight="700" fill="#1f4373">− GND</text>
+
+  <!-- top half hole area -->
+  <rect x="80" y="180" width="1240" height="260" fill="url(#holes)" opacity="0.7"/>
+
+  <!-- center gap -->
+  <rect x="80" y="440" width="1240" height="40" fill="#f7f1e0" stroke="#d8c898" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="700" y="465" text-anchor="middle" font-size="11" fill="#9a8a60" font-style="italic">↑ 中线 ─ ESP32 必须横跨这条线插 ↑</text>
+
+  <!-- bottom half hole area -->
+  <rect x="80" y="480" width="1240" height="260" fill="url(#holes)" opacity="0.7"/>
+
+  <!-- bottom GND rail -->
+  <rect x="80" y="750" width="1240" height="30" fill="#e5ecf5" stroke="#3a64a8" stroke-width="1.5"/>
+  <line x1="100" y1="765" x2="1300" y2="765" stroke="#3a64a8" stroke-width="2"/>
+  <text x="105" y="771" font-size="11" font-weight="700" fill="#1f4373">− GND</text>
+  <text x="1295" y="771" text-anchor="end" font-size="11" font-weight="700" fill="#1f4373">− GND</text>
+
+  <!-- bottom 5V rail -->
+  <rect x="80" y="790" width="1240" height="30" fill="#fde8d4" stroke="#e07b30" stroke-width="1.5"/>
+  <line x1="100" y1="805" x2="1300" y2="805" stroke="#e07b30" stroke-width="2"/>
+  <text x="105" y="811" font-size="11" font-weight="700" fill="#8a4310">+ 5V</text>
+  <text x="1295" y="811" text-anchor="end" font-size="11" font-weight="700" fill="#8a4310">+ 5V</text>
+
+  <!-- GND bridge -->
+  <path d="M 1290 165 Q 1340 460 1290 760" fill="none" stroke="#3a64a8" stroke-width="2.5" stroke-dasharray="6 3"/>
+  <text x="1345" y="455" font-size="10.5" fill="#1f4373" font-style="italic">两条 GND</text>
+  <text x="1345" y="470" font-size="10.5" fill="#1f4373" font-style="italic">必须桥接</text>
+
+  <!-- ESP32-DevKitC (straddling center gap) -->
+  <g>
+    <rect x="540" y="370" width="320" height="140" rx="8" fill="#1f2d24" stroke="#0d1812" stroke-width="2"/>
+    <text x="700" y="408" text-anchor="middle" fill="#f0e7d4" font-size="16" font-weight="700">ESP32-DevKitC</text>
+    <text x="700" y="427" text-anchor="middle" fill="#9bb09b" font-size="10">(横跨中线，左右针脚自动分到上下半区)</text>
+    <text x="700" y="448" text-anchor="middle" fill="#9bb09b" font-size="10">USB ←</text>
+
+    <!-- TOP pin row (upper half) -->
+    <g>
+      <circle cx="560" cy="370" r="4" fill="#d04545"/>
+      <text x="560" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">3V3</text>
+      <circle cx="610" cy="370" r="4" fill="#3a64a8"/>
+      <text x="610" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GND</text>
+      <circle cx="660" cy="370" r="4" fill="#5a8fbf"/>
+      <text x="660" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP21</text>
+      <text x="660" y="346" text-anchor="middle" font-size="9" fill="#9bb09b">SDA</text>
+      <circle cx="720" cy="370" r="4" fill="#d4b020"/>
+      <text x="720" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP22</text>
+      <text x="720" y="346" text-anchor="middle" font-size="9" fill="#9bb09b">SCL</text>
+      <circle cx="780" cy="370" r="4" fill="#7f9c4a"/>
+      <text x="780" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP34</text>
+      <text x="780" y="346" text-anchor="middle" font-size="9" fill="#9bb09b">ADC</text>
+      <circle cx="840" cy="370" r="4" fill="#7f9c4a"/>
+      <text x="840" y="358" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP35</text>
+      <text x="840" y="346" text-anchor="middle" font-size="9" fill="#9bb09b">pH</text>
+    </g>
+
+    <!-- BOTTOM pin row (lower half) -->
+    <g>
+      <circle cx="560" cy="510" r="4" fill="#3a64a8"/>
+      <text x="560" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GND</text>
+      <circle cx="610" cy="510" r="4" fill="#e07b30"/>
+      <text x="610" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">5V</text>
+      <text x="610" y="542" text-anchor="middle" font-size="9" fill="#9bb09b">VIN</text>
+      <circle cx="700" cy="510" r="4" fill="#c08530"/>
+      <text x="700" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP16</text>
+      <text x="700" y="542" text-anchor="middle" font-size="9" fill="#9bb09b">RX2</text>
+      <circle cx="780" cy="510" r="4" fill="#c08530"/>
+      <text x="780" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#f0e7d4">GP17</text>
+      <text x="780" y="542" text-anchor="middle" font-size="9" fill="#9bb09b">TX2</text>
+    </g>
+  </g>
+
+  <!-- ============ TOP HALF MODULES ============ -->
+
+  <!-- OLED -->
+  <g>
+    <rect x="160" y="220" width="200" height="80" rx="4" fill="#1a1a1a" stroke="#000" stroke-width="1.5"/>
+    <rect x="175" y="232" width="170" height="40" rx="2" fill="#0a0a0a"/>
+    <text x="260" y="250" text-anchor="middle" fill="#cfe0cf" font-size="10">温度 24.5°C  湿度 52%</text>
+    <text x="260" y="265" text-anchor="middle" fill="#cfe0cf" font-size="10">光照 312 lx</text>
+    <text x="260" y="318" text-anchor="middle" fill="#1c2e24" font-size="12" font-weight="700">OLED SSD1306</text>
+    <text x="260" y="332" text-anchor="middle" fill="#666" font-size="10">I²C · 0x3C · 3.3V</text>
+    <circle cx="200" cy="300" r="3" fill="#3a64a8"/><text x="200" y="350" text-anchor="middle" font-size="10">GND</text>
+    <circle cx="240" cy="300" r="3" fill="#d04545"/><text x="240" y="350" text-anchor="middle" font-size="10">VCC</text>
+    <circle cx="280" cy="300" r="3" fill="#d4b020"/><text x="280" y="350" text-anchor="middle" font-size="10">SCL</text>
+    <circle cx="320" cy="300" r="3" fill="#5a8fbf"/><text x="320" y="350" text-anchor="middle" font-size="10">SDA</text>
+  </g>
+
+  <!-- SHT40 -->
+  <g>
+    <rect x="440" y="230" width="180" height="70" rx="4" fill="#dbe5d4" stroke="#7a8a76" stroke-width="1.5"/>
+    <text x="530" y="258" text-anchor="middle" fill="#2a4d3a" font-size="13" font-weight="700">SHT40</text>
+    <text x="530" y="275" text-anchor="middle" fill="#555" font-size="10">温度 + 湿度</text>
+    <text x="530" y="291" text-anchor="middle" fill="#555" font-size="10">I²C · 0x44 · 3.3V</text>
+    <circle cx="470" cy="300" r="3" fill="#d04545"/><text x="470" y="318" text-anchor="middle" font-size="10">VCC</text>
+    <circle cx="510" cy="300" r="3" fill="#3a64a8"/><text x="510" y="318" text-anchor="middle" font-size="10">GND</text>
+    <circle cx="550" cy="300" r="3" fill="#d4b020"/><text x="550" y="318" text-anchor="middle" font-size="10">SCL</text>
+    <circle cx="590" cy="300" r="3" fill="#5a8fbf"/><text x="590" y="318" text-anchor="middle" font-size="10">SDA</text>
+  </g>
+
+  <!-- BH1750 -->
+  <g>
+    <rect x="940" y="230" width="180" height="70" rx="4" fill="#dbe5d4" stroke="#7a8a76" stroke-width="1.5"/>
+    <text x="1030" y="258" text-anchor="middle" fill="#2a4d3a" font-size="13" font-weight="700">BH1750</text>
+    <text x="1030" y="275" text-anchor="middle" fill="#555" font-size="10">环境光 (lux)</text>
+    <text x="1030" y="291" text-anchor="middle" fill="#555" font-size="10">I²C · 0x23 · 3.3V</text>
+    <circle cx="965" cy="300" r="3" fill="#d04545"/><text x="965" y="318" text-anchor="middle" font-size="10">VCC</text>
+    <circle cx="1000" cy="300" r="3" fill="#3a64a8"/><text x="1000" y="318" text-anchor="middle" font-size="10">GND</text>
+    <circle cx="1035" cy="300" r="3" fill="#d4b020"/><text x="1035" y="318" text-anchor="middle" font-size="10">SCL</text>
+    <circle cx="1070" cy="300" r="3" fill="#5a8fbf"/><text x="1070" y="318" text-anchor="middle" font-size="10">SDA</text>
+  </g>
+
+  <!-- ============ BOTTOM HALF MODULES ============ -->
+
+  <!-- Soil moisture -->
+  <g>
+    <rect x="160" y="560" width="200" height="120" rx="4" fill="#2d4030" stroke="#1a2620" stroke-width="1.5"/>
+    <text x="260" y="588" text-anchor="middle" fill="#dfe8df" font-size="13" font-weight="700">土壤湿度模块</text>
+    <text x="260" y="604" text-anchor="middle" fill="#9bb09b" font-size="10">电容式 · 模拟输出</text>
+    <text x="260" y="619" text-anchor="middle" fill="#9bb09b" font-size="10">3.3V · ADC 0~4095</text>
+    <rect x="210" y="640" width="100" height="30" fill="#c0a85a" stroke="#8a7a40"/>
+    <text x="260" y="658" text-anchor="middle" fill="#3a2a10" font-size="9">↓ 探针插入盆土 ↓</text>
+    <circle cx="205" cy="560" r="3" fill="#d04545"/><text x="205" y="550" text-anchor="middle" font-size="10">VCC</text>
+    <circle cx="260" cy="560" r="3" fill="#3a64a8"/><text x="260" y="550" text-anchor="middle" font-size="10">GND</text>
+    <circle cx="315" cy="560" r="3" fill="#7f9c4a"/><text x="315" y="550" text-anchor="middle" font-size="10">AO</text>
+  </g>
+
+  <!-- pH Module (optional) -->
+  <g>
+    <rect x="440" y="560" width="200" height="120" rx="4" fill="#4a3a5a" stroke="#2a1a30" stroke-width="1.5" stroke-dasharray="6 3"/>
+    <text x="540" y="588" text-anchor="middle" fill="#e4dcf0" font-size="13" font-weight="700">pH 模块（可选）</text>
+    <text x="540" y="604" text-anchor="middle" fill="#bfa9d4" font-size="10">PH4502C 或同类</text>
+    <text x="540" y="620" text-anchor="middle" fill="#bfa9d4" font-size="10">5V 供电 · Po 经分压到 ADC</text>
+    <rect x="500" y="638" width="80" height="28" fill="#7a6a40" stroke="#5a4a20"/>
+    <text x="540" y="656" text-anchor="middle" fill="#1a1010" font-size="9">BNC → 玻璃电极</text>
+    <circle cx="475" cy="680" r="3" fill="#e07b30"/><text x="475" y="700" text-anchor="middle" font-size="10">VCC 5V</text>
+    <circle cx="540" cy="680" r="3" fill="#3a64a8"/><text x="540" y="700" text-anchor="middle" font-size="10">GND</text>
+    <circle cx="605" cy="680" r="3" fill="#7f9c4a"/><text x="605" y="700" text-anchor="middle" font-size="10">Po</text>
+  </g>
+
+  <!-- DFPlayer Mini -->  <g>
+    <rect x="940" y="560" width="200" height="130" rx="4" fill="#1a2c4a" stroke="#0d1830" stroke-width="1.5"/>
+    <text x="1040" y="588" text-anchor="middle" fill="#e4ecf5" font-size="13" font-weight="700">DFPlayer Mini</text>
+    <text x="1040" y="605" text-anchor="middle" fill="#b0c4dc" font-size="10">MP3 文件播放</text>
+    <text x="1040" y="620" text-anchor="middle" fill="#b0c4dc" font-size="10">UART 9600 · 5V</text>
+    <rect x="960" y="640" width="55" height="35" fill="#0a1828" stroke="#000"/>
+    <text x="987" y="662" text-anchor="middle" fill="#9bb0c8" font-size="10">TF 卡</text>
+    <circle cx="1115" cy="650" r="4" fill="#9b3a3a" stroke="#000"/>
+    <circle cx="1115" cy="675" r="4" fill="#3a3a3a" stroke="#000"/>
+    <text x="1100" y="654" text-anchor="end" font-size="10" fill="#cfd8e8">SPK+</text>
+    <text x="1100" y="679" text-anchor="end" font-size="10" fill="#cfd8e8">SPK−</text>
+    <circle cx="965" cy="560" r="3" fill="#e07b30"/><text x="965" y="550" text-anchor="middle" font-size="10">VCC 5V</text>
+    <circle cx="1010" cy="560" r="3" fill="#c08530"/><text x="1010" y="550" text-anchor="middle" font-size="10">RX</text>
+    <circle cx="1055" cy="560" r="3" fill="#c08530"/><text x="1055" y="550" text-anchor="middle" font-size="10">TX</text>
+    <circle cx="1100" cy="560" r="3" fill="#3a64a8"/><text x="1100" y="550" text-anchor="middle" font-size="10">GND</text>
+  </g>
+
+  <!-- Speaker -->
+  <g>
+    <circle cx="1230" cy="660" r="42" fill="#3a2a18" stroke="#1a1208" stroke-width="2"/>
+    <circle cx="1230" cy="660" r="30" fill="#5a4030"/>
+    <circle cx="1230" cy="660" r="12" fill="#2a1a08"/>
+    <text x="1230" y="722" text-anchor="middle" font-size="11" font-weight="700" fill="#3a2a18">喇叭 8Ω</text>
+    <line x1="1188" y1="650" x2="1120" y2="650" stroke="#9b3a3a" stroke-width="2.5"/>
+    <line x1="1188" y1="675" x2="1120" y2="675" stroke="#3a3a3a" stroke-width="2.5"/>
+  </g>
+
+  <!-- ============ WIRES ============ -->
+
+  <!-- Power channels: 3V3 from ESP32 top-left pin -->
+  <polyline points="560,370 560,130" fill="none" stroke="#d04545" stroke-width="2.5"/>
+  <polyline points="610,370 610,170" fill="none" stroke="#3a64a8" stroke-width="2.5"/>
+  <polyline points="610,510 610,790" fill="none" stroke="#e07b30" stroke-width="2.5"/>
+  <polyline points="560,510 560,750" fill="none" stroke="#3a64a8" stroke-width="2.5"/>
+
+  <!-- Top modules VCC up to 3V3 rail -->
+  <line x1="240" y1="300" x2="240" y2="130" stroke="#d04545" stroke-width="2"/>
+  <line x1="470" y1="300" x2="470" y2="130" stroke="#d04545" stroke-width="2"/>
+  <line x1="965" y1="300" x2="965" y2="130" stroke="#d04545" stroke-width="2"/>
+  <!-- Top modules GND to GND rail -->
+  <line x1="200" y1="300" x2="200" y2="170" stroke="#3a64a8" stroke-width="2"/>
+  <line x1="510" y1="300" x2="510" y2="170" stroke="#3a64a8" stroke-width="2"/>
+  <line x1="1000" y1="300" x2="1000" y2="170" stroke="#3a64a8" stroke-width="2"/>
+
+  <!-- I²C SDA bus: GP21(660,370) up to y=195, then horizontal across, then down to each module SDA -->
+  <polyline points="660,370 660,195 320,195 320,300" fill="none" stroke="#5a8fbf" stroke-width="2.5"/>
+  <line x1="660" y1="195" x2="590" y2="195" stroke="#5a8fbf" stroke-width="2.5"/>
+  <line x1="590" y1="195" x2="590" y2="300" stroke="#5a8fbf" stroke-width="2.5"/>
+  <polyline points="660,195 1070,195 1070,300" fill="none" stroke="#5a8fbf" stroke-width="2.5"/>
+
+  <!-- I²C SCL bus: GP22(720,370) up to y=210 -->
+  <polyline points="720,370 720,210 280,210 280,300" fill="none" stroke="#d4b020" stroke-width="2.5"/>
+  <line x1="720" y1="210" x2="550" y2="210" stroke="#d4b020" stroke-width="2.5"/>
+  <line x1="550" y1="210" x2="550" y2="300" stroke="#d4b020" stroke-width="2.5"/>
+  <polyline points="720,210 1035,210 1035,300" fill="none" stroke="#d4b020" stroke-width="2.5"/>
+
+  <!-- Soil VCC: 205,560 -> 3V3 rail (route left around ESP32) -->
+  <polyline points="205,560 130,560 130,115 90,115" fill="none" stroke="#d04545" stroke-width="2"/>
+  <!-- Soil GND -> bottom GND rail -->
+  <line x1="260" y1="560" x2="260" y2="750" stroke="#3a64a8" stroke-width="2"/>
+  <!-- Soil AO 315,560 -> ESP32 GP34 (780,370). Route: up around left/right of ESP32. -->
+  <!-- Since AO goes down into hole and module is BELOW ESP32, but GP34 is on TOP pin row, need to route around ESP32. Go right side. -->
+  <polyline points="315,560 315,540 890,540 890,355 780,355 780,370" fill="none" stroke="#7f9c4a" stroke-width="2.5"/>
+
+  <!-- DFP VCC 5V -> bottom 5V rail -->
+  <line x1="965" y1="560" x2="965" y2="790" stroke="#e07b30" stroke-width="2"/>
+  <!-- DFP GND -> bottom GND rail -->
+  <line x1="1100" y1="560" x2="1100" y2="750" stroke="#3a64a8" stroke-width="2"/>
+  <!-- DFP RX (1010,560) <- ESP32 GP17 TX2 (780,510) -->
+  <polyline points="780,510 780,545 1010,545 1010,560" fill="none" stroke="#c08530" stroke-width="2.5"/>
+  <text x="895" y="540" text-anchor="middle" font-size="9" fill="#7a4810" font-weight="700">ESP→DFP RX</text>
+  <!-- DFP TX (1055,560) -> ESP32 GP16 RX2 (700,510) -->
+  <polyline points="1055,560 1055,575 700,575 700,510" fill="none" stroke="#c08530" stroke-width="2.5" stroke-dasharray="6 3"/>
+  <text x="880" y="592" text-anchor="middle" font-size="9" fill="#7a4810" font-weight="700">DFP→ESP RX</text>
+
+  <!-- pH wires -->
+  <!-- pH VCC 5V (475,680) -> bottom 5V rail at y=790 (straight down through bottom rails) -->
+  <line x1="475" y1="680" x2="475" y2="790" stroke="#e07b30" stroke-width="2"/>
+  <!-- pH GND (540,680) -> bottom GND rail at y=750 -->
+  <line x1="540" y1="680" x2="540" y2="750" stroke="#3a64a8" stroke-width="2"/>
+  <!-- pH Po (605,680) -> ESP32 GP35 (840,370) via right-side channel x=905 -->
+  <polyline points="605,680 605,720 905,720 905,400 860,400" fill="none" stroke="#7f9c4a" stroke-width="2.5"/>
+  <!-- small resistor symbol indicating voltage divider on Po path -->
+  <rect x="695" y="713" width="40" height="14" fill="#fff5d6" stroke="#7a4810" stroke-width="1"/>
+  <text x="715" y="723" text-anchor="middle" font-size="9" fill="#7a4810" font-weight="700">分压</text>
+  <text x="830" y="395" text-anchor="end" font-size="9" fill="#3a5020" font-weight="700">→ GP35 (Po)</text>
+
+  <!-- ============ Annotation badges ============ -->
+  <g font-size="11">
+    <rect x="675" y="180" width="170" height="22" rx="11" fill="#e8f0f8" stroke="#5a8fbf"/>
+    <text x="760" y="195" text-anchor="middle" fill="#1f4373">I²C 总线（3 模块并联）</text>
+  </g>
+
+  <!-- ============ LEGEND ============ -->
+  <g transform="translate(80, 870)" font-size="12">
+    <text x="0" y="0" font-weight="700" fill="#1c2e24">线缆颜色：</text>
+    <line x1="80" y1="-4" x2="110" y2="-4" stroke="#d04545" stroke-width="2.5"/><text x="115" y="0" fill="#333">3V3</text>
+    <line x1="148" y1="-4" x2="178" y2="-4" stroke="#e07b30" stroke-width="2.5"/><text x="183" y="0" fill="#333">5V</text>
+    <line x1="215" y1="-4" x2="245" y2="-4" stroke="#3a64a8" stroke-width="2.5"/><text x="250" y="0" fill="#333">GND</text>
+    <line x1="290" y1="-4" x2="320" y2="-4" stroke="#5a8fbf" stroke-width="2.5"/><text x="325" y="0" fill="#333">SDA (I²C)</text>
+    <line x1="400" y1="-4" x2="430" y2="-4" stroke="#d4b020" stroke-width="2.5"/><text x="435" y="0" fill="#333">SCL (I²C)</text>
+    <line x1="510" y1="-4" x2="540" y2="-4" stroke="#7f9c4a" stroke-width="2.5"/><text x="545" y="0" fill="#333">ADC 模拟</text>
+    <line x1="615" y1="-4" x2="645" y2="-4" stroke="#c08530" stroke-width="2.5"/><text x="650" y="0" fill="#333">UART (实线)</text>
+    <line x1="730" y1="-4" x2="760" y2="-4" stroke="#c08530" stroke-width="2.5" stroke-dasharray="6 3"/><text x="765" y="0" fill="#333">UART 反向</text>
+    <line x1="850" y1="-4" x2="880" y2="-4" stroke="#3a64a8" stroke-width="2.5" stroke-dasharray="6 3"/><text x="885" y="0" fill="#333">GND 桥接</text>
+  </g>
+
+  <text x="80" y="905" font-size="10.5" fill="#555">
+    ① I²C 三模块的 SDA/SCL 并联到同一对线，I²C 地址不同不冲突　② DFPlayer / pH 模块用 5V，其余 3.3V　③ ESP32 必须横跨中线插下　④ 两条 GND 蓝轨用一根短跳线桥接（虚蓝线）　⑤ pH 模块 Po 务必经分压再接 GP35
+  </text>
+</svg>

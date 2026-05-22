@@ -1,0 +1,245 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" font-family="'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14">
+  <!-- ============================================================
+       Demo 侧视图：实际摆放
+       - 左：植物盆栽（剖面，看见探针入土）
+       - 右：控制盒（剖面，看见 ESP32 / OLED 朝前 / 喇叭朝外）
+       - 顶部：环境传感器（SHT40 / BH1750）裸露朝上
+       ============================================================ -->
+
+  <defs>
+    <!-- 土壤纹理 -->
+    <pattern id="soil" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+      <rect width="14" height="14" fill="#6b4a2b"/>
+      <circle cx="3" cy="4" r="1.2" fill="#4a3018"/>
+      <circle cx="10" cy="9" r="1.5" fill="#8a6a44"/>
+      <circle cx="6" cy="11" r="0.9" fill="#3a2410"/>
+    </pattern>
+    <!-- 喇叭网格 -->
+    <pattern id="grille" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#222"/>
+      <circle cx="5" cy="5" r="2" fill="#000"/>
+    </pattern>
+    <!-- 桌面纹理 -->
+    <linearGradient id="desk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9c2a3"/>
+      <stop offset="1" stop-color="#a98765"/>
+    </linearGradient>
+    <!-- OLED 屏发光 -->
+    <linearGradient id="oledGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1a2a"/>
+      <stop offset="1" stop-color="#001020"/>
+    </linearGradient>
+    <!-- 箭头 -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+
+  <!-- 背景 + 标题 -->
+  <rect width="1400" height="900" fill="#fafaf6"/>
+  <text x="700" y="40" text-anchor="middle" font-size="22" font-weight="700">Demo 侧视图：实际摆放（探针入土 · 屏朝前 · 喇叭朝外）</text>
+  <text x="700" y="62" text-anchor="middle" font-size="13" fill="#666">剖面示意（非真实比例）；前方=观众/路演方向，朝向以箭头标注</text>
+
+  <!-- 桌面 -->
+  <rect x="40" y="760" width="1320" height="80" fill="url(#desk)" stroke="#7a5e3e" stroke-width="2"/>
+  <text x="60" y="800" font-size="13" fill="#5a3e1e">桌面 / 展台</text>
+
+  <!-- ===================== 左侧：盆栽 ===================== -->
+  <!-- 花盆（梯形剖面） -->
+  <path d="M 170 760 L 220 540 L 480 540 L 530 760 Z" fill="#c97b4a" stroke="#7a3e15" stroke-width="3"/>
+  <!-- 花盆内壁阴影 -->
+  <path d="M 195 750 L 235 560 L 465 560 L 505 750 Z" fill="none" stroke="#7a3e15" stroke-width="1" opacity="0.4"/>
+  <!-- 土壤（剖面） -->
+  <rect x="225" y="570" width="250" height="180" fill="url(#soil)"/>
+  <!-- 土壤上沿曲线 -->
+  <path d="M 225 575 Q 350 565 475 575" fill="none" stroke="#3a2410" stroke-width="2"/>
+  <text x="350" y="700" text-anchor="middle" font-size="13" fill="#fff8e0" font-weight="600">盆土</text>
+
+  <!-- 植物（简化）-->
+  <g>
+    <!-- 茎 -->
+    <path d="M 350 570 Q 348 480 360 410 Q 372 350 350 280" fill="none" stroke="#2f5d2f" stroke-width="6"/>
+    <!-- 叶子 -->
+    <ellipse cx="310" cy="430" rx="55" ry="22" fill="#3f8a3f" stroke="#1f5a1f" stroke-width="2" transform="rotate(-25 310 430)"/>
+    <ellipse cx="410" cy="380" rx="65" ry="25" fill="#4a9d4a" stroke="#1f5a1f" stroke-width="2" transform="rotate(20 410 380)"/>
+    <ellipse cx="300" cy="340" rx="60" ry="24" fill="#3f8a3f" stroke="#1f5a1f" stroke-width="2" transform="rotate(-15 300 340)"/>
+    <ellipse cx="395" cy="295" rx="55" ry="22" fill="#4a9d4a" stroke="#1f5a1f" stroke-width="2" transform="rotate(30 395 295)"/>
+  </g>
+
+  <!-- 土壤湿度探针（电容式，插入土壤）-->
+  <g>
+    <!-- 探针主体（露出土外部分） -->
+    <rect x="258" y="530" width="22" height="50" rx="2" fill="#2a2a2a" stroke="#000" stroke-width="1.5"/>
+    <text x="269" y="555" text-anchor="middle" font-size="9" fill="#fff">AO</text>
+    <!-- 探针入土部分（PCB 长条）-->
+    <rect x="262" y="580" width="14" height="155" fill="#1a5a1a" stroke="#000" stroke-width="1"/>
+    <!-- 探针金属指 -->
+    <rect x="264" y="700" width="3" height="32" fill="#c9c9c9"/>
+    <rect x="271" y="700" width="3" height="32" fill="#c9c9c9"/>
+    <!-- 引线 -->
+    <path d="M 269 530 Q 269 500 320 490 Q 600 470 760 470" fill="none" stroke="#16a34a" stroke-width="2.2"/>
+    <text x="540" y="463" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="600">AO → GPIO34（ADC1）</text>
+    <!-- 标签 -->
+    <line x1="285" y1="640" x2="380" y2="640" stroke="#333" stroke-width="1"/>
+    <text x="385" y="635" font-size="12" fill="#333" font-weight="600">土壤湿度探针</text>
+    <text x="385" y="650" font-size="11" fill="#666">电容式 · 入土约 4~5cm</text>
+  </g>
+
+  <!-- 可选 pH 探针 -->
+  <g opacity="0.85">
+    <rect x="430" y="540" width="18" height="40" rx="2" fill="#444" stroke="#000" stroke-width="1.2"/>
+    <!-- 玻璃球泡（pH 电极头部，入土）-->
+    <rect x="432" y="580" width="14" height="120" fill="#cfe8f5" stroke="#3070a0" stroke-width="1"/>
+    <circle cx="439" cy="710" r="9" fill="#cfe8f5" stroke="#3070a0" stroke-width="1.2"/>
+    <!-- BNC 线 -->
+    <path d="M 439 540 Q 470 510 540 500" fill="none" stroke="#a16207" stroke-width="2" stroke-dasharray="5,4"/>
+    <text x="460" y="525" font-size="11" fill="#a16207">pH（可选）→ GPIO35（分压）</text>
+  </g>
+
+  <!-- ===================== 右侧：控制盒 ===================== -->
+  <!-- 盒体（剖面，露出内部） -->
+  <g>
+    <!-- 外壳 -->
+    <rect x="720" y="430" width="560" height="330" rx="14" fill="#ececec" stroke="#4a4a4a" stroke-width="3"/>
+    <!-- 盒盖上沿（顶部传感器开孔位）-->
+    <rect x="720" y="430" width="560" height="22" fill="#cfcfcf" stroke="#4a4a4a" stroke-width="2"/>
+    <text x="1000" y="446" text-anchor="middle" font-size="11" fill="#333">顶面（开传感器孔）</text>
+  </g>
+
+  <!-- 前面板（屏 + 喇叭）：注意"前方"在剖面图里是右侧 -->
+  <g>
+    <!-- 前面板分隔线 -->
+    <line x1="1240" y1="430" x2="1240" y2="760" stroke="#4a4a4a" stroke-width="3"/>
+    <text x="1305" y="595" text-anchor="middle" font-size="14" fill="#1d4ed8" font-weight="700" transform="rotate(90 1305 595)">前面板（朝观众）</text>
+
+    <!-- OLED 屏（嵌在前面板上半部分，朝外）-->
+    <rect x="1242" y="470" width="36" height="140" fill="url(#oledGlow)" stroke="#000" stroke-width="2"/>
+    <!-- 屏上中文模拟 -->
+    <text x="1260" y="495" text-anchor="middle" font-size="9" fill="#7df9ff" font-weight="700">温</text>
+    <text x="1260" y="515" text-anchor="middle" font-size="9" fill="#7df9ff" font-weight="700">湿</text>
+    <text x="1260" y="535" text-anchor="middle" font-size="9" fill="#7df9ff" font-weight="700">光</text>
+    <text x="1260" y="555" text-anchor="middle" font-size="9" fill="#7df9ff" font-weight="700">土</text>
+    <text x="1260" y="585" text-anchor="middle" font-size="8" fill="#7df9ff">OLED</text>
+
+    <!-- 喇叭（嵌在前面板下半部分，朝外）-->
+    <circle cx="1260" cy="690" r="38" fill="url(#grille)" stroke="#000" stroke-width="2"/>
+    <circle cx="1260" cy="690" r="38" fill="none" stroke="#444" stroke-width="1"/>
+    <text x="1260" y="755" text-anchor="middle" font-size="10" fill="#333" font-weight="600">8Ω 喇叭</text>
+  </g>
+
+  <!-- 屏朝前箭头 -->
+  <g>
+    <path d="M 1290 540 L 1360 540" stroke="#1d4ed8" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <text x="1325" y="530" text-anchor="middle" font-size="12" fill="#1d4ed8" font-weight="700">屏朝前</text>
+  </g>
+  <!-- 喇叭朝外箭头 -->
+  <g>
+    <path d="M 1300 690 L 1380 690" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#arrowRed)"/>
+    <text x="1340" y="680" text-anchor="middle" font-size="12" fill="#b91c1c" font-weight="700">喇叭朝外</text>
+  </g>
+
+  <!-- 内部：ESP32 + DFPlayer + 接线 -->
+  <g>
+    <!-- ESP32 板 -->
+    <rect x="760" y="600" width="160" height="60" rx="4" fill="#1f5a3a" stroke="#000" stroke-width="2"/>
+    <text x="840" y="625" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">ESP32-DevKitC</text>
+    <text x="840" y="645" text-anchor="middle" font-size="10" fill="#cfe6ff">USB 供电 / I²C / UART</text>
+    <!-- USB 接口（朝下/后）-->
+    <rect x="822" y="660" width="36" height="14" fill="#888" stroke="#000" stroke-width="1"/>
+    <text x="840" y="690" text-anchor="middle" font-size="10" fill="#444">USB（朝后/底走线）</text>
+
+    <!-- DFPlayer -->
+    <rect x="970" y="600" width="110" height="50" rx="3" fill="#5a1f1f" stroke="#000" stroke-width="2"/>
+    <text x="1025" y="622" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">DFPlayer</text>
+    <text x="1025" y="638" text-anchor="middle" font-size="10" fill="#f5dfdf">Mini + TF</text>
+
+    <!-- 面包板/底板（简化） -->
+    <rect x="740" y="710" width="480" height="40" rx="3" fill="#fefbe9" stroke="#b08a3e" stroke-width="2"/>
+    <text x="980" y="735" text-anchor="middle" font-size="11" fill="#7a5e1e">面包板 / 底板</text>
+
+    <!-- 接线：ESP32 → OLED（I²C） -->
+    <path d="M 920 615 Q 1100 615 1242 540" fill="none" stroke="#1d4ed8" stroke-width="1.8"/>
+    <text x="1090" y="600" font-size="10" fill="#1d4ed8">I²C（SDA/SCL）</text>
+
+    <!-- 接线：ESP32 → DFPlayer（UART） -->
+    <path d="M 920 640 L 970 640" fill="none" stroke="#a16207" stroke-width="1.8"/>
+    <text x="945" y="660" text-anchor="middle" font-size="10" fill="#a16207">UART2</text>
+
+    <!-- 接线：DFPlayer → 喇叭 -->
+    <path d="M 1080 625 Q 1180 660 1224 685" fill="none" stroke="#b91c1c" stroke-width="1.8"/>
+    <text x="1160" y="650" font-size="10" fill="#b91c1c">SPK+/−</text>
+  </g>
+
+  <!-- ===================== 顶部传感器（朝上裸露） ===================== -->
+  <!-- SHT40 -->
+  <g>
+    <rect x="820" y="395" width="60" height="22" rx="2" fill="#3a7a3a" stroke="#000" stroke-width="1.5"/>
+    <text x="850" y="411" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">SHT40</text>
+    <!-- 引线穿盒 -->
+    <path d="M 850 417 L 850 430" stroke="#444" stroke-width="1.5"/>
+    <text x="850" y="385" text-anchor="middle" font-size="10" fill="#333">温湿度（朝上 · 通气孔）</text>
+    <!-- 通气箭头 -->
+    <path d="M 850 370 L 850 392" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arrow)" opacity="0.6"/>
+  </g>
+
+  <!-- BH1750 -->
+  <g>
+    <rect x="1090" y="395" width="60" height="22" rx="2" fill="#3a7a3a" stroke="#000" stroke-width="1.5"/>
+    <text x="1120" y="411" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">BH1750</text>
+    <path d="M 1120 417 L 1120 430" stroke="#444" stroke-width="1.5"/>
+    <text x="1120" y="385" text-anchor="middle" font-size="10" fill="#333">光照（朝上 · 见光）</text>
+    <!-- 光线 -->
+    <g stroke="#f59e0b" stroke-width="1.5" opacity="0.8">
+      <path d="M 1080 340 L 1110 388"/>
+      <path d="M 1120 335 L 1120 388"/>
+      <path d="M 1160 340 L 1130 388"/>
+    </g>
+    <text x="1175" y="345" font-size="10" fill="#a16207">☀ 光</text>
+  </g>
+
+  <!-- ===================== 方向坐标 ===================== -->
+  <g transform="translate(80, 110)">
+    <rect x="0" y="0" width="200" height="110" rx="6" fill="#fff" stroke="#999" stroke-width="1"/>
+    <text x="100" y="20" text-anchor="middle" font-size="13" font-weight="700">方向约定</text>
+    <!-- 前 -->
+    <path d="M 100 50 L 160 50" stroke="#1d4ed8" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="170" y="55" font-size="12" fill="#1d4ed8" font-weight="700">前（观众）</text>
+    <!-- 后 -->
+    <path d="M 100 50 L 40 50" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="35" y="55" text-anchor="end" font-size="11" fill="#666">后</text>
+    <!-- 上 -->
+    <path d="M 100 50 L 100 20" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="108" y="28" font-size="11" fill="#16a34a">上</text>
+    <!-- 下 -->
+    <path d="M 100 50 L 100 90" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="108" y="95" font-size="11" fill="#666">下</text>
+    <text x="100" y="105" text-anchor="middle" font-size="10" fill="#666">剖面图：左右轴=前后</text>
+  </g>
+
+  <!-- ===================== 关键摆放要点 ===================== -->
+  <g transform="translate(1080, 90)">
+    <rect x="0" y="0" width="290" height="170" rx="6" fill="#fff" stroke="#999" stroke-width="1"/>
+    <text x="145" y="22" text-anchor="middle" font-size="13" font-weight="700">摆放要点</text>
+    <text x="14" y="46" font-size="11.5" fill="#222">• 土壤探针 PCB 入土 4~5cm，金属指完全埋入</text>
+    <text x="14" y="65" font-size="11.5" fill="#222">• pH 玻璃球泡入土；不用时浸 KCl 保存液</text>
+    <text x="14" y="84" font-size="11.5" fill="#222">• SHT40 / BH1750 朝上裸露，远离屏幕散热</text>
+    <text x="14" y="103" font-size="11.5" fill="#222">• OLED 嵌前面板，路演时朝向观众</text>
+    <text x="14" y="122" font-size="11.5" fill="#222">• 喇叭面板开圆孔贴网布，朝外朝下偏 15°</text>
+    <text x="14" y="141" font-size="11.5" fill="#222">• USB 走盒底/盒后，避免遮挡前面板</text>
+    <text x="14" y="160" font-size="11.5" fill="#222">• 控制盒与花盆分体或夹在盆沿均可</text>
+  </g>
+
+  <!-- 底部图例 -->
+  <g transform="translate(40, 855)">
+    <text x="0" y="0" font-size="11" fill="#444">
+      <tspan fill="#16a34a" font-weight="700">绿</tspan>=传感器/AO
+      <tspan dx="14" fill="#1d4ed8" font-weight="700">蓝</tspan>=I²C 与朝前指示
+      <tspan dx="14" fill="#b91c1c" font-weight="700">红</tspan>=喇叭/朝外指示
+      <tspan dx="14" fill="#a16207" font-weight="700">棕</tspan>=UART/pH 信号
+      <tspan dx="14" fill="#666">灰</tspan>=结构/外壳
+    </text>
+  </g>
+</svg>
