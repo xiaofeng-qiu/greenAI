@@ -2,6 +2,7 @@
 FROM node:20-bookworm-slim
 
 WORKDIR /app
+RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main non-free contrib" > /etc/apt/sources.list && echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main non-free contrib" >> /etc/apt/sources.list && echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main non-free contrib" >> /etc/apt/sources.list
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
