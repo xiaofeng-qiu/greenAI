@@ -119,14 +119,48 @@ npm run build     # TypeScript 编译
 
 ## 部署
 
-### Docker Compose 部署
+### 一键部署脚本
 
-`deploy/docker-compose.prod.yml` 包含 API 服务 + PostgreSQL 16，一条命令启动：
+`deploy/deploy.sh` 自动完成 nginx 反代 + Docker Compose 栈启动：
+
+```bash
+# 最小部署（仅 Docker 栈，nginx 需手动配置）
+./deploy/deploy.sh
+
+# 带 nginx 反代 + HTTPS
+NGINX_DOMAIN=plant.example.com \
+NGINX_SSL_CERT=/etc/letsencrypt/live/plant.example.com/fullchain.pem \
+NGINX_SSL_KEY=/etc/letsencrypt/live/plant.example.com/privkey.pem \
+./deploy/deploy.sh
+```
+
+部署脚本执行流程：
+
+| 步骤 | 说明 |
+|---|---|
+| [1/3] Nginx | 检测 nginx → 无则安装 → 生成配置（模板：`deploy/nginx-greenai.conf`）→ 启用站点 → `nginx -t` → reload（有 HTTPS 证书时自动取消注释 SSL 配置） |
+| [2/3] Docker | `docker compose -f deploy/docker-compose.prod.yml up -d --build` |
+| [3/3] 健康检查 | 轮询 `localhost:API_PUBLISH_PORT/health` |
+
+> 如需跳过 nginx 配置只起 Docker 栈，不设置 `NGINX_DOMAIN` 即可。
+
+### Docker Compose 部署（仅 API）
 
 ```bash
 # 从项目根目录执行
 docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build api
 ```
+
+### 运维脚本
+
+`deploy/ops/` 提供日常运维命令：
+
+| 脚本 | 用途 | 示例 |
+|---|---|---|
+| `status.sh` | 检查 Docker 容器、API 健康、Nginx、磁盘、SSL 证书 | `./deploy/ops/status.sh` |
+| `logs.sh` | 实时跟踪日志（api/db/nginx/all） | `./deploy/ops/logs.sh nginx` |
+| `restart.sh` | 重建 API 镜像并重启，等待健康检查 | `./deploy/ops/restart.sh` |
+| `backup.sh` | PostgreSQL 备份（`pg_dump` custom 格式，保留 14 天） | `./deploy/ops/backup.sh ./backups` |
 
 ### 环境变量
 
@@ -148,6 +182,9 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build a
 | `DIAGNOSE_LLM_MODEL` | 否 | 视觉诊断 LLM 模型（默认 gpt-4o-mini） |
 | `SKIP_INTEGRATION_TESTS` | 否 | 设为 `1` 跳过需数据库的集成测试 |
 | `API_PUBLISH_PORT` | 否 | Compose 发布端口（默认 3000） |
+| `NGINX_DOMAIN` | 否 | nginx server_name（设置后 deploy.sh 自动生成反代配置） |
+| `NGINX_SSL_CERT` | 否 | SSL 证书路径（与 `NGINX_SSL_KEY` 同时设置且文件存在时启用 HTTPS） |
+| `NGINX_SSL_KEY` | 否 | SSL 证书私钥路径 |
 
 ## CI
 
@@ -188,8 +225,14 @@ greenAI/
 │   └── data/                 # 静态知识数据
 ├── deploy/                   # 部署配置
 │   ├── docker-compose.prod.yml
-│   ├── deploy.sh
-│   └── deploy.ps1
+│   ├── nginx-greenai.conf    # nginx 反代配置模板（由 deploy.sh 生成部署）
+│   ├── deploy.sh             # 一键部署（nginx 设置 + Docker 栈）
+│   ├── deploy.ps1            # Windows PowerShell 部署
+│   └── ops/                  # 运维脚本
+│       ├── status.sh         # 服务状态检查
+│       ├── logs.sh           # 日志查看（api/db/nginx）
+│       ├── restart.sh        # 重启 API
+│       └── backup.sh         # PostgreSQL 备份
 ├── scripts/
 │   └── ship.mjs             # 一键提交+推送脚本
 └── .github/workflows/
