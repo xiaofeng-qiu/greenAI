@@ -7,6 +7,27 @@
 
 static U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /*reset=*/U8X8_PIN_NONE);
 
+// ============================================================
+//  WiFi 状态图标 (右上角)
+// ============================================================
+static void drawWifiIcon(bool connected) {
+    const int cx = 118, cy = 8;   // 右上角坐标
+    // 3 层弧线 (V 形近似)
+    u8g2.drawLine(cx - 5, cy + 3, cx, cy - 2);
+    u8g2.drawLine(cx + 5, cy + 3, cx, cy - 2);
+    u8g2.drawLine(cx - 3, cy + 5, cx, cy + 1);
+    u8g2.drawLine(cx + 3, cy + 5, cx, cy + 1);
+    u8g2.drawLine(cx - 1, cy + 7, cx, cy + 4);
+    u8g2.drawLine(cx + 1, cy + 7, cx, cy + 4);
+    u8g2.drawPixel(cx, cy + 9);   // 天线
+
+    if (!connected) {
+        // 未连接：画 X
+        u8g2.drawLine(cx - 7, cy - 3, cx + 7, cy + 11);
+        u8g2.drawLine(cx - 7, cy + 11, cx + 7, cy - 3);
+    }
+}
+
 void displayInit() {
     if (u8g2.begin()) {
         Serial.println("[OLED] init OK");
@@ -51,6 +72,8 @@ void displayUpdate(const SensorData& d) {
         snprintf(buf, sizeof(buf), "Soil:--");
     }
     u8g2.drawUTF8(0, 59, buf);
+
+    drawWifiIcon(d.wifiConnected);
 
     u8g2.sendBuffer();
 }

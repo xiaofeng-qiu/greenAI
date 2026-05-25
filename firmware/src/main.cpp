@@ -83,6 +83,7 @@ void loop() {
     if (now - lastSensorMillis >= SENSOR_INTERVAL_MS || lastSensorMillis == 0) {
         lastSensorMillis = now;
         lastData = readAllSensors();
+        lastData.wifiConnected = wifiIsConnected();
 
 #if STAGE_SERIAL
         serialPrint(lastData);

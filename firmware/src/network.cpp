@@ -232,6 +232,14 @@ void wifiProvLoop() {
 }
 
 // ============================================================
+//  WiFi Status
+// ============================================================
+
+bool wifiIsConnected() {
+    return g_provState == PROV_CONNECTED && WiFi.status() == WL_CONNECTED;
+}
+
+// ============================================================
 //  HTTP Upload
 // ============================================================
 
@@ -282,5 +290,6 @@ void uploadSensorData(const SensorData&) {}
 void wifiProvSetup() {}
 void wifiProvLoop() {}
 void uploadSensorData(const SensorData&) {}
+bool wifiIsConnected() { return false; }
 
 #endif     // STAGE_BLE_WIFI

@@ -8,7 +8,8 @@ struct SensorData {
     int   soilRaw     = 0;
     int   soilPercent = 0;
     float pH          = NAN;
-  bool  sensorOK[4] = {false, false, false, false}; // SHT/BH/Soil/pH
+    bool  sensorOK[4] = {false, false, false, false}; // SHT/BH/Soil/pH
+    bool  wifiConnected = false;
 };
 
 extern bool g_sht3xAvailable;

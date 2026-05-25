@@ -4,3 +4,4 @@
 void wifiProvSetup();
 void wifiProvLoop();
 void uploadSensorData(const SensorData& d);
+bool wifiIsConnected();
