@@ -191,6 +191,13 @@ curl -sS "https://YOUR_DOMAIN/internal/metrics/summary?days=7" \
 - 数据库备份：对 PostgreSQL 卷或托管实例按云厂商策略做快照 / `pg_dump`。
 - 升级流程：拉取新镜像或新代码 → `deploy` 脚本或 `migrate deploy` + 重启 API → 观察日志与 `/health`。
 
+### 8.1 运维管理台（`admin/`）
+
+仓库根目录 **`admin/`** 为独立 Node 服务（默认端口 **`ADMIN_PORT=3100`**），与主 API 共用 **`DATABASE_URL`**，通过 **`Authorization: Bearer <ADMIN_API_TOKEN>`** 调用 JSON 接口，并内置简易 Web 页（用户、硬件绑定植物、设备上报日志、系统日志聚合）。详见 `admin/README.md`。
+
+- **不要**将管理台端口对公网裸奔；建议仅内网、SSH 隧道或管理 VPN 访问。
+- 环境变量见根目录 `.env.example` 中「Admin 运维控制台」注释。
+
 ---
 
 ## 9. 文件索引
@@ -203,5 +210,6 @@ curl -sS "https://YOUR_DOMAIN/internal/metrics/summary?days=7" \
 | `deploy/deploy.sh` / `deploy/deploy.ps1` | 一键构建并启动栈 + 健康检查 |
 | `docker-compose.yml` | 本地仅 Postgres 开发用 |
 | `.env.example` | 环境变量模板 |
+| `admin/README.md` | 运维管理台（独立进程 + Web） |
 
 如有防火墙，仅对反向代理或 LB 开放 **443**；内部 **3000** 可不对外暴露。

@@ -1,0 +1,168 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  line-height: 1.45;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.auth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.auth input {
+  min-width: 220px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+}
+
+button.secondary {
+  background: #475569;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.tab {
+  background: transparent;
+  color: #0f172a;
+}
+
+.tab.active {
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+}
+
+main {
+  padding: 16px 20px 48px;
+}
+
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.toolbar input {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  min-width: 140px;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.out {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+}
+
+pre.json {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.82rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f1f5f9;
+  position: sticky;
+  top: 0;
+}
+
+tr:hover td {
+  background: #f8fafc;
+}
+
+.status {
+  position: fixed;
+  left: 16px;
+  bottom: 12px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.error {
+  color: #b91c1c;
+}

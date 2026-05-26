@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>greenAI 运维管理</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>greenAI 运维管理</h1>
+      <div class="auth">
+        <label>
+          API Token
+          <input
+            id="token"
+            type="password"
+            autocomplete="off"
+            placeholder="与 ADMIN_API_TOKEN 一致"
+          />
+        </label>
+        <button type="button" id="saveToken">保存到浏览器</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button type="button" class="tab active" data-tab="users">用户</button>
+      <button type="button" class="tab" data-tab="plants">硬件植物</button>
+      <button type="button" class="tab" data-tab="deviceLogs">设备上报日志</button>
+      <button type="button" class="tab" data-tab="systemLogs">系统日志</button>
+    </nav>
+
+    <main>
+      <section id="panel-users" class="panel active">
+        <div class="toolbar">
+          <input id="userQ" type="search" placeholder="搜索 id / openid" />
+          <button type="button" id="loadUsers">刷新</button>
+        </div>
+        <div id="usersOut" class="out"></div>
+      </section>
+
+      <section id="panel-plants" class="panel">
+        <div class="toolbar">
+          <button type="button" id="loadPlants">刷新列表</button>
+          <input
+            id="plantDetailId"
+            type="text"
+            placeholder="植物 ID 查看详情"
+          />
+          <button type="button" id="loadPlantDetail">详情</button>
+        </div>
+        <div id="plantsOut" class="out"></div>
+      </section>
+
+      <section id="panel-deviceLogs" class="panel">
+        <div class="toolbar">
+          <input id="logDeviceId" placeholder="deviceId 可选" />
+          <input id="logUserId" placeholder="userId 可选" />
+          <input id="logLevel" placeholder="level 可选" />
+          <button type="button" id="loadDeviceLogs">刷新</button>
+        </div>
+        <div id="deviceLogsOut" class="out"></div>
+      </section>
+
+      <section id="panel-systemLogs" class="panel">
+        <div class="toolbar">
+          <button type="button" id="loadSystemLogs">刷新聚合</button>
+          <span class="hint"
+            >含通知发送记录、任务错误、设备 warn/error；若配置了
+            ADMIN_SYSTEM_LOG_PATH 会附带文件尾部</span
+          >
+        </div>
+        <div id="systemLogsOut" class="out"></div>
+      </section>
+    </main>
+
+    <p id="status" class="status" role="status"></p>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

@@ -4,6 +4,15 @@ generator client {
 
 }
 
+/// 供仓库根目录 `admin/` 运维服务使用；输出在 `backend/generated/` 以便 Docker 仅构建 API 镜像时路径有效。
+generator admin_client {
+
+  provider = "prisma-client-js"
+
+  output   = "../generated/admin-client"
+
+}
+
 
 
 datasource db {

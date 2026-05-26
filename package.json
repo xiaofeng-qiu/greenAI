@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "verify:openspec-docs": "node --test scripts/parity-docs-anchor.test.mjs",
+    "verify:admin": "npm run build --prefix admin",
     "verify:backend": "npm run build --prefix backend && npm run test --prefix backend",
     "ship": "node scripts/ship.mjs"
   }
