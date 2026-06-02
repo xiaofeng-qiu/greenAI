@@ -176,7 +176,10 @@ const fertilizeCountText = computed(() => fertilizeCount.value ? `${fertilizeCou
 const plantStrip = computed(() => {
   return plants.value.slice(0, 12).map(p => {
     let photo = "";
-    try { photo = uni.getStorageSync("plantPhoto_" + p.id) || ""; } catch {}
+    try {
+      const raw = uni.getStorageSync("plantPhoto_" + p.id);
+      if (raw) photo = "data:image/jpeg;base64," + raw;
+    } catch {}
     return { ...p, photo, avatarLetter: p.nickname.charAt(0) };
   });
 });
