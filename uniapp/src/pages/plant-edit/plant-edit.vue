@@ -148,6 +148,12 @@ onLoad((options) => {
     isEdit.value = true;
     loadPlant(options.id);
   }
+  if (options?.species) {
+    speciesLabel.value = decodeURIComponent(options.species);
+  }
+  if (options?.description) {
+    careTips.value = decodeURIComponent(options.description);
+  }
   loadDevices();
 });
 

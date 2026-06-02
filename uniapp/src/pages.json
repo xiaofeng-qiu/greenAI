@@ -47,6 +47,18 @@
       "style": {
         "navigationBarTitleText": "问题诊断"
       }
+    },
+    {
+      "path": "pages/identify-result/identify-result",
+      "style": {
+        "navigationBarTitleText": "识别结果"
+      }
+    },
+    {
+      "path": "pages/soil-result/soil-result",
+      "style": {
+        "navigationBarTitleText": "土壤评估"
+      }
     }
   ],
   "globalStyle": {

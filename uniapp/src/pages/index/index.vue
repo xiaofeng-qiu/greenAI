@@ -63,39 +63,7 @@
       <view class="tool" @tap="onDiagnose"><text class="ico">🐛</text><text>病虫害诊断</text></view>
     </view>
 
-    <view v-if="identifyResult" class="card result-card">
-      <view class="result-head">
-        <text class="result-title">🌼 识别结果</text>
-        <text class="result-close" @tap="clearIdentifyResult">✕</text>
-      </view>
-      <text class="result-species">品种：{{ identifyResult.speciesLabel }}</text>
-      <text v-if="identifyResult.confidence" class="result-conf">置信度：{{ identifyResult.confidence }}%</text>
-      <text v-if="identifyResult.description" class="result-desc">{{ identifyResult.description }}</text>
-    </view>
 
-    <view v-if="soilResult" class="card result-card result-card--soil">
-      <view class="result-head">
-        <text class="result-title">🪴 土壤评估</text>
-        <text class="result-close" @tap="clearSoilResult">✕</text>
-      </view>
-      <view class="soil-row">
-        <text class="soil-label">干湿度</text>
-        <text :class="['soil-tag', 'soil-tag--' + soilResult.moistureKey]">{{ soilResult.moistureLabel }}</text>
-        <text v-if="soilResult.confidence" class="soil-conf">置信度 {{ soilResult.confidence }}%</text>
-      </view>
-      <view class="soil-row">
-        <text class="soil-label">肥力</text>
-        <text class="soil-tag soil-tag--fertility">{{ soilResult.fertilityLabel }}</text>
-      </view>
-      <view v-if="soilResult.rationale" class="soil-block">
-        <text class="soil-subtitle">分析依据</text>
-        <text class="soil-text">{{ soilResult.rationale }}</text>
-      </view>
-      <view v-if="soilResult.wateringTip" class="soil-block">
-        <text class="soil-subtitle">养护建议</text>
-        <text class="soil-text soil-tip">{{ soilResult.wateringTip }}</text>
-      </view>
-    </view>
 
     <view v-if="tasks.length" class="section-title">今日任务</view>
     <view v-for="t in tasks" :key="t.id" class="card task-card">
@@ -115,7 +83,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import { request, getToken, clearToken } from "@/utils/request";
+import { request, getToken } from "@/utils/request";
 import { chooseImageBase64 } from "@/utils/image";
 
 interface WeatherCurrent {
@@ -139,26 +107,10 @@ interface CareTask {
   typeClass: string;
 }
 
-const IDENTIFY_KEY = "identifyResult";
-const SOIL_KEY = "soilResult";
-
 const weatherCurrent = ref<WeatherCurrent | null>(null);
 const weatherSummary = ref("");
 const plants = ref<Plant[]>([]);
 const tasks = ref<CareTask[]>([]);
-const identifyResult = ref<any>(null);
-const soilResult = ref<any>(null);
-
-function loadStoredResults() {
-  try {
-    const saved = uni.getStorageSync(IDENTIFY_KEY);
-    if (saved) identifyResult.value = typeof saved === "string" ? JSON.parse(saved) : saved;
-  } catch {}
-  try {
-    const saved = uni.getStorageSync(SOIL_KEY);
-    if (saved) soilResult.value = typeof saved === "string" ? JSON.parse(saved) : saved;
-  } catch {}
-}
 
 const now = new Date();
 const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -276,21 +228,17 @@ async function onIdentify() {
       confidence: best.score || "",
       description: best.baikeDescription || best.careSummary || "已识别到品种",
     };
-    identifyResult.value = result;
-    uni.setStorageSync(IDENTIFY_KEY, result);
-    uni.showToast({ title: "识别成功", icon: "success" });
+    uni.setStorageSync("identifyResult", result);
+    uni.setStorageSync("identifyImage", base64);
+    uni.navigateTo({ url: "/pages/identify-result/identify-result" });
   } catch (e: any) {
-    const code = e?.statusCode;
     const msg = e?.message || e?.errMsg || "";
-    if (msg.includes("file_read_failed")) uni.showToast({ title: "读取图片失败", icon: "none" });
-    else if (msg.includes("cancel") || msg.includes("no_image")) { /* user cancelled, no toast */ }
-    else if (code === 503) uni.showToast({ title: "服务端未配置识别", icon: "none" });
+    const code = e?.statusCode;
+    if (msg.includes("cancel") || msg.includes("no_image")) { /* cancelled */ }
     else if (code === 422) uni.showToast({ title: "未识别到植物", icon: "none" });
     else if (code === 502) uni.showToast({ title: "识别服务异常", icon: "none" });
-    else if (code === 400) uni.showToast({ title: "图片数据异常", icon: "none" });
-    else if (code === 401) { clearToken(); uni.showToast({ title: "登录失效，请重新登录", icon: "none" }); }
-    else if (code === 0 || !code) uni.showToast({ title: "网络连接失败，请检查服务器", icon: "none" });
-    else uni.showToast({ title: `识别失败（${code}）`, icon: "none" });
+    else if (code === 0 || !code) uni.showToast({ title: "网络连接失败", icon: "none" });
+    else uni.showToast({ title: `识别失败（${code || ""}）`, icon: "none" });
   } finally {
     uni.hideLoading();
   }
@@ -311,14 +259,12 @@ async function onSoil() {
       wateringTip: data?.wateringTip || "",
       confidence: data?.confidence ? Math.round(data.confidence * 100) : 0,
     };
-    soilResult.value = result;
-    uni.setStorageSync(SOIL_KEY, result);
-    uni.showToast({ title: "分析完成", icon: "success" });
+    uni.setStorageSync("soilResult", result);
+    uni.setStorageSync("soilImage", base64);
+    uni.navigateTo({ url: "/pages/soil-result/soil-result" });
   } catch (e: any) {
-    const code = e?.statusCode;
     const detail = e?.data?.detail || "";
-    if (code === 503) uni.showToast({ title: "未启用 AI 诊断", icon: "none" });
-    else if (code === 502) uni.showToast({ title: detail || "AI 服务异常", icon: "none" });
+    if (e?.statusCode === 502) uni.showToast({ title: detail || "AI 服务异常", icon: "none" });
     else uni.showToast({ title: "请求失败", icon: "none" });
   } finally {
     uni.hideLoading();
@@ -329,15 +275,6 @@ function onDiagnose() {
   uni.navigateTo({ url: "/pages/diagnose/diagnose" });
 }
 
-function clearIdentifyResult() {
-  identifyResult.value = null;
-  uni.removeStorageSync(IDENTIFY_KEY);
-}
-
-function clearSoilResult() {
-  soilResult.value = null;
-  uni.removeStorageSync(SOIL_KEY);
-}
 async function onComplete(taskId: string) {
   try {
     await request({ path: `/tasks/${taskId}/complete`, method: "POST" });
@@ -359,7 +296,6 @@ async function onSkip(taskId: string) {
 
 onShow(() => {
   loadDashboard();
-  loadStoredResults();
 });
 </script>
 
@@ -569,99 +505,5 @@ onShow(() => {
   background: #f5f5f5;
   color: #616161;
 }
-.result-card {
-  background: #f8f6f0;
-  border: 1rpx solid rgba(139, 119, 90, 0.2);
-}
-.result-card--soil {
-  background: #f8f6f0;
-}
-.result-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-.result-title {
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #5d4a2e;
-}
-.result-close {
-  font-size: 28rpx;
-  color: #9e9e9e;
-  padding: 8rpx;
-}
-.result-species {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #212121;
-  margin-bottom: 8rpx;
-}
-.result-conf {
-  display: block;
-  font-size: 24rpx;
-  color: #616161;
-  margin-bottom: 8rpx;
-}
-.result-desc {
-  display: block;
-  font-size: 26rpx;
-  color: #616161;
-  line-height: 1.55;
-}
-.soil-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 12rpx;
-  flex-wrap: wrap;
-}
-.soil-label {
-  font-size: 26rpx;
-  color: #9e9e9e;
-  font-weight: 600;
-  min-width: 5em;
-}
-.soil-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 4rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-.soil-tag--very_wet, .soil-tag--wet { background: #d4edda; color: #155724; }
-.soil-tag--moderate { background: #fff3cd; color: #856404; }
-.soil-tag--dry, .soil-tag--very_dry { background: #f8d7da; color: #721c24; }
-.soil-tag--fertility { background: #e2e3f0; color: #383d6e; }
-.soil-conf {
-  font-size: 22rpx;
-  color: #9e9e9e;
-}
-.soil-block {
-  margin-top: 16rpx;
-  padding-top: 14rpx;
-  border-top: 1rpx solid #e0e0e0;
-}
-.soil-subtitle {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #212121;
-  margin-bottom: 8rpx;
-}
-.soil-text {
-  display: block;
-  font-size: 24rpx;
-  color: #616161;
-  line-height: 1.6;
-}
-.soil-tip {
-  padding: 14rpx 18rpx;
-  background: #f0f9f4;
-  border-radius: 12rpx;
-  color: #2d6a4f;
-}
+
 </style>
