@@ -47,7 +47,8 @@
         class="plant-chip"
         @tap="goPlantEdit(p.id)"
       >
-        <view class="plant-chip__avatar">{{ p.avatarLetter }}</view>
+        <image v-if="p.photo" class="plant-chip__photo" :src="p.photo" mode="aspectFill"></image>
+        <view v-else class="plant-chip__avatar">{{ p.avatarLetter }}</view>
         <text class="plant-chip__name">{{ p.nickname }}</text>
       </view>
     </view>
@@ -173,10 +174,11 @@ const waterCountText = computed(() => waterCount.value ? `${waterCount.value}株
 const fertilizeCountText = computed(() => fertilizeCount.value ? `${fertilizeCount.value}株植物需要施肥` : "暂无施肥任务");
 
 const plantStrip = computed(() => {
-  return plants.value.slice(0, 12).map(p => ({
-    ...p,
-    avatarLetter: p.nickname.charAt(0),
-  }));
+  return plants.value.slice(0, 12).map(p => {
+    let photo = "";
+    try { photo = uni.getStorageSync("plantPhoto_" + p.id) || ""; } catch {}
+    return { ...p, photo, avatarLetter: p.nickname.charAt(0) };
+  });
 });
 
 const weatherEmoji = computed(() => {
@@ -470,7 +472,8 @@ onShow(() => {
   gap: 8rpx;
   min-width: 100rpx;
 }
-.plant-chip__avatar {
+.plant-chip__avatar,
+.plant-chip__photo {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
