@@ -22,6 +22,7 @@ const config = loadConfig();
 
 const app = Fastify({
   logger: true,
+  bodyLimit: 20 * 1024 * 1024,
   genReqId: (req) => {
     const h = req.headers["x-request-id"];
     const id = Array.isArray(h) ? h[0] : h;

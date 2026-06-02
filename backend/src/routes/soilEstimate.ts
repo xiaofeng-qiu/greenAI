@@ -56,7 +56,7 @@ const soilEstimateRoutes: FastifyPluginAsync = async (app) => {
       return estimate;
     } catch (e) {
       req.log.warn({ err: String(e) }, "soil_estimate_llm_failed");
-      return reply.status(502).send({ error: "soil_estimate_llm_upstream" });
+      return reply.status(502).send({ error: "soil_estimate_llm_upstream", detail: String(e).slice(0, 200) });
     }
   });
 };

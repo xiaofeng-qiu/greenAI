@@ -43,6 +43,8 @@ Page({
     plantStrip: [],
 
     tasks: [],
+
+    identifyResult: null,
   },
 
   async onShow() {
@@ -280,6 +282,13 @@ Page({
                 wx.showToast({ title: "未识别到植物", icon: "none" });
                 return;
               }
+              this.setData({
+                identifyResult: {
+                  speciesLabel: best.name,
+                  confidence: best.score || "",
+                  desc: best.baikeDescription || best.careSummary || "已识别到品种",
+                },
+              });
               wx.showToast({ title: "识别成功", icon: "success" });
             } catch (e) {
               const code = e && e.statusCode;
@@ -287,6 +296,10 @@ Page({
                 wx.showToast({ title: "服务端未配置识别", icon: "none" });
               } else if (code === 422) {
                 wx.showToast({ title: "未识别到植物", icon: "none" });
+              } else if (code === 502) {
+                wx.showToast({ title: "识别服务异常，请稍后重试", icon: "none" });
+              } else if (code === 400) {
+                wx.showToast({ title: "图片数据异常", icon: "none" });
               } else {
                 wx.showToast({ title: "识别失败", icon: "none" });
               }

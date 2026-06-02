@@ -78,6 +78,18 @@
     </view>
   </view>
 
+  <!-- 识别结果 -->
+  <view wx:if="{{identifyResult}}" class="identify-result ga-card">
+    <text class="identify-result__title">识别结果</text>
+    <text class="identify-result__species">品种：{{identifyResult.speciesLabel}}</text>
+    <text wx:if="{{identifyResult.confidence}}" class="identify-result__confidence">
+      置信度：{{identifyResult.confidence}}%
+    </text>
+    <text wx:if="{{identifyResult.desc}}" class="identify-result__desc">
+      {{identifyResult.desc}}
+    </text>
+  </view>
+
   <block wx:if="{{tasks.length > 0}}">
     <text class="index-section-head__title index-section-head__title--solo">今日任务</text>
     <block wx:for="{{tasks}}" wx:key="id">

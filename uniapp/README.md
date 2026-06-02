@@ -1,6 +1,6 @@
 # GreenAI Bot · uni-app
 
-基于 **Vue 3 + Vite + uni-app** 的跨端壳工程，与仓库内 **Fastify 后端**、**微信原生小程序**（`miniprogram/`）共用同一套 REST 约定。
+基于 **Vue 3 + Vite + uni-app** 的跨端前端工程，支持 H5 / App / 各端小程序。与仓库内 **Fastify 后端** 共用同一套 REST API。
 
 ## 环境
 
@@ -21,9 +21,11 @@ npm run dev:h5
 
 ## 配置 API
 
-编辑 `src/utils/config.ts` 中的 `API_BASE_URL`（默认 `http://127.0.0.1:3000`，与小程序 `utils/api.js` 一致）。
+`src/utils/config.ts` 自动检测：
+- **H5**：取 `window.location.hostname:3000`（无需手动配置）
+- **非 Web 平台**：回退 `http://127.0.0.1:3000`
 
-登录：App 需接入**微信开放平台移动应用**或其它账号体系后，将 JWT 写入 `uni.setStorageSync('greenai_token', ...)`（key 见 `config.ts`）。
+JWT 通过 `uni.setStorageSync('greenai_token', …)` 持久化（key 见 `config.ts`）。
 
 ## Tab 图标
 
@@ -35,7 +37,41 @@ node scripts/write-uniapp-tab-placeholders.mjs
 
 会生成 `src/static/tab/*.png` 占位图；发布前请替换为设计稿切图。
 
+## 关键功能说明
+
+### 图片处理（`src/utils/image.ts`）
+
+`chooseImageBase64()` 流程：
+1. `uni.chooseImage` 选择/拍照
+2. App/小程序端：`uni.compressImage` 压缩（quality: 90），H5 端跳过（`typeof uni.compressImage` 守卫）
+3. `fetch` → `blob` → `FileReader.readAsDataURL` → 提取 base64
+
+### 植物识别（首页 `onIdentify`）
+
+1. 选图 → 压缩 → base64 → `POST /plants/identify { imageBase64 }`
+2. 后端转发百度 AI 植物识别 API
+3. 成功后结果写入 `uni.setStorageSync('identifyResult', …)`，页面 `onShow` 时恢复
+4. 可关闭结果卡片（`removeStorageSync`）
+
+### 土壤评估（首页 `onSoil`）
+
+1. 选图 → 压缩 → base64 → `POST /soil/estimate-photo { imageBase64 }`
+2. 后端用 LLM（DashScope Qwen-VL）分析盆土
+3. 展示干湿度/肥力/置信度/养护建议
+4. 结果同植物识别一样持久化到 storage
+
+### 病虫害诊断（`pages/diagnose/diagnose`）
+
+跳转诊断页，支持拍照 + 勾选症状 + 文字补充 → LLM 诊断。
+
 ## 与原生小程序的关系
 
-- **业务优先**可继续在 `miniprogram/` 迭代；本目录逐步把各页迁到 Vue 并接同一 API。
-- 若将来以 uni-app 为主，可用 `build:mp-weixin` 产出小程序目录再导入微信开发者工具。
+- **uni-app 为主前端**，原生小程序（`miniprogram/`）已不再维护。
+- 若需微信小程序版本，用 `build:mp-weixin` 产出目录导入微信开发者工具。
+
+## 后端要点
+
+- Fastify `bodyLimit: 20MB`（base64 图片可能超过默认 1MB）
+- 百度 AI 植物识别需配置 `BAIDU_API_KEY + BAIDU_SECRET_KEY`
+- 土壤/诊断 LLM 默认 DashScope `qwen3-vl-plus-2025-09-23`（已在 `.env` 中排除 `response_format: json_object`）
+- 本地开发 `DATABASE_URL` 需用 `localhost` 而非 `db`

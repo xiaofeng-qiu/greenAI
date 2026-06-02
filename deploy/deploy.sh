@@ -88,7 +88,7 @@ setup_nginx() {
       "$conf_target"
     echo "  -> HTTPS 已启用（证书：$ssl_cert）"
   else
-    echo "  -> SSL 证书未配置或文件不存在，仅启用 HTTP（80）。"
+    echo /Users/niyanan/greenAI/deploy/docker-compose.prod.yml"  -> SSL 证书未配置或文件不存在，仅启用 HTTP（80）。"
     echo "     设置 NGINX_SSL_CERT + NGINX_SSL_KEY 路径并确保文件存在以启用 HTTPS。"
   fi
 

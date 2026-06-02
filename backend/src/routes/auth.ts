@@ -36,6 +36,16 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const token = signUserToken(user.id, config.JWT_SECRET);
     return { token, userId: user.id };
   });
+
+  app.post("/auth/dev", async (req, reply) => {
+    const user = await app.prisma.user.upsert({
+      where: { openid: "dev" },
+      create: { openid: "dev" },
+      update: {},
+    });
+    const token = signUserToken(user.id, config.JWT_SECRET);
+    return { token, userId: user.id };
+  });
 };
 
 export default authRoutes;

@@ -1,14 +1,13 @@
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { loadConfig } from "../config.js";
 import { authenticate } from "../lib/authGuard.js";
 
 const BINDING_CODE_TTL_MS = 10 * 60 * 1000;
-const BINDING_CODE_BYTES = 8;
 
 const claimBodySchema = z.object({
-  code: z.string().min(8).max(64).transform((s) => s.trim().toLowerCase()),
+  code: z.string().length(8),
   hardwareId: z.string().min(1).max(128),
 });
 
@@ -43,7 +42,7 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
     async (req, reply) => {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + BINDING_CODE_TTL_MS);
-      const code = randomBytes(BINDING_CODE_BYTES).toString("hex");
+      const code = String(randomInt(0, 100_000_000)).padStart(8, "0");
 
       await app.prisma.deviceBindingCode.create({
         data: {

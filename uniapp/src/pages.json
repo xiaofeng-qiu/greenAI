@@ -23,6 +23,30 @@
       "style": {
         "navigationBarTitleText": "我"
       }
+    },
+    {
+      "path": "pages/knowledge/detail",
+      "style": {
+        "navigationBarTitleText": "文章详情"
+      }
+    },
+    {
+      "path": "pages/plant-edit/plant-edit",
+      "style": {
+        "navigationBarTitleText": "编辑植物"
+      }
+    },
+    {
+      "path": "pages/plant-plan/plant-plan",
+      "style": {
+        "navigationBarTitleText": "养护计划"
+      }
+    },
+    {
+      "path": "pages/diagnose/diagnose",
+      "style": {
+        "navigationBarTitleText": "问题诊断"
+      }
     }
   ],
   "globalStyle": {

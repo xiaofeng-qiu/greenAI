@@ -41,7 +41,17 @@ const weatherRoutes: FastifyPluginAsync = async (app) => {
         longitude: user.longitude,
         timezone: user.timezone || "Asia/Shanghai",
         forecastDays: 3,
-});
+      });
+      return {
+        timezone: user.timezone,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        days,
+      };
+    } catch {
+      return reply.status(502).send({ error: "weather_upstream" });
+    }
+  });
 
   /** Detect IANA timezone from GPS coordinates using geo-tz. */
   app.get("/timezone/detect", async (req, reply) => {
@@ -57,17 +67,6 @@ const weatherRoutes: FastifyPluginAsync = async (app) => {
     const zones = find(lat, lng);
     const timezone = (Array.isArray(zones) && zones.length > 0) ? zones[0] : "UTC";
     return { timezone };
-  });
-
-      return {
-        timezone: user.timezone,
-        latitude: user.latitude,
-        longitude: user.longitude,
-        days,
-      };
-    } catch {
-      return reply.status(502).send({ error: "weather_upstream" });
-    }
   });
 };
 

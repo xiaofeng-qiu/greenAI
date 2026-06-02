@@ -1,5 +1,5 @@
 # Production API image (Fastify + Prisma). Build from repo root: see docs/engineering/deployment.md
-FROM node:20-bookworm-slim
+FROM node:20.13.1-bookworm-slim
 
 WORKDIR /app
 # 替换为阿里云镜像（禁用默认 deb.debian.org 源）

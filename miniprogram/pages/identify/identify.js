@@ -33,7 +33,7 @@ Page({
               this.setData({
                 identifyResult: {
                   speciesLabel: best.name,
-                  confidence: best.confidence || "",
+                  confidence: best.score || "",
                   desc:
                     best.baikeDescription ||
                     best.careSummary ||
@@ -47,6 +47,10 @@ Page({
                 wx.showToast({ title: "服务端未配置识别", icon: "none" });
               } else if (code === 422) {
                 wx.showToast({ title: "未识别到植物", icon: "none" });
+              } else if (code === 502) {
+                wx.showToast({ title: "识别服务异常，请稍后重试", icon: "none" });
+              } else if (code === 400) {
+                wx.showToast({ title: "图片数据异常", icon: "none" });
               } else {
                 wx.showToast({ title: "识别失败", icon: "none" });
               }

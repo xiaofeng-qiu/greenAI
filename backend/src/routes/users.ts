@@ -53,8 +53,8 @@ const patchBody = z
 const usersRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
 
-  app.get("/users/me", async (req) => {
-    const user = await app.prisma.user.findUniqueOrThrow({
+  app.get("/users/me", async (req, reply) => {
+    const user = await app.prisma.user.findUnique({
       where: { id: req.userId! },
       select: {
         id: true,
@@ -67,6 +67,7 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
         createdAt: true,
       },
     });
+    if (!user) return reply.status(401).send({ error: "user_not_found" });
     return user;
   });
 

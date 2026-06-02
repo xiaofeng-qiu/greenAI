@@ -61,10 +61,6 @@ export async function estimateSoilMoistureFromPhoto(input: {
     ],
   };
 
-  if (!input.model.toLowerCase().includes("deepseek")) {
-    payload.response_format = { type: "json_object" };
-  }
-
   const res = await request(url, {
     method: "POST",
     headers: {
