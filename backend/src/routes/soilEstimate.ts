@@ -51,6 +51,11 @@ const soilEstimateRoutes: FastifyPluginAsync = async (app) => {
             confidence: estimate.confidence,
           },
         });
+        // Update plant's soilMoistureHint so care plan regenerate uses it
+        await app.prisma.plant.update({
+          where: { id: plant.id },
+          data: { soilMoistureHint: estimate.soilMoistureHint },
+        });
       }
 
       return estimate;

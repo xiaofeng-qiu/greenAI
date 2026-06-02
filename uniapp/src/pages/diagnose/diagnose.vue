@@ -124,13 +124,20 @@ const soilResult = ref<any>(null);
 
 onLoad(async (options) => {
   await Promise.all([loadCatalog(), loadPlants()]);
-  if (options && (options as any).mode === "soil") {
-    nextTick(() => {
-      const query = uni.createSelectorQuery();
-      query.select("#soil-panel").boundingClientRect((rect: any) => {
-        if (rect) uni.pageScrollTo({ scrollTop: rect.top - 20, duration: 300 });
-      }).exec();
-    });
+  if (options) {
+    const plantId = (options as any).plantId;
+    if (plantId) {
+      const idx = plantIds.value.indexOf(plantId);
+      if (idx >= 0) plantPickerIndex.value = idx;
+    }
+    if ((options as any).mode === "soil") {
+      nextTick(() => {
+        const query = uni.createSelectorQuery();
+        query.select("#soil-panel").boundingClientRect((rect: any) => {
+          if (rect) uni.pageScrollTo({ scrollTop: rect.top - 20, duration: 300 });
+        }).exec();
+      });
+    }
   }
 });
 
@@ -201,10 +208,11 @@ async function onSubmitLlm() {
   }
   uni.showLoading({ title: "AI 分析中", mask: true });
   try {
+    const plantId = plantIds.value[plantPickerIndex.value] || undefined;
     const data: any = await request({
       path: "/soil/estimate-photo",
       method: "POST",
-      data: { imageBase64: llmImageBase64.value },
+      data: { imageBase64: llmImageBase64.value, plantId },
     });
     const moistureKey = data?.soilMoistureHint || "moderate";
     soilResult.value = {

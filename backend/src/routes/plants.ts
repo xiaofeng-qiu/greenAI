@@ -203,7 +203,6 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
 
-    const t0 = Date.now();
     const p = parsed.data;
 
     const user = await app.prisma.user.findUniqueOrThrow({
@@ -249,66 +248,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     req.log = req.log.child({ plantId: plant.id });
-
-    const asOf = new Date();
-    const generated = generateWaterTasks({
-      asOf,
-      intervalDays: interval,
-      horizonDays: 14,
-      plantId: plant.id,
-    });
-    const fertInterval = computeFertilizeIntervalDays(interval);
-    const generatedFert = generateFertilizeTasks({
-      asOf,
-      intervalDays: fertInterval,
-      horizonDays: 14,
-      plantId: plant.id,
-    });
-
-    const repotDue = nextPeriodicDueDate(
-      plant.createdAt,
-      REPOT_PERIOD_DAYS,
-      asOf
-    );
-    const inspectDue = nextPeriodicDueDate(
-      plant.createdAt,
-      INSPECT_PERIOD_DAYS,
-      asOf
-    );
-
-    await app.prisma.careTask.createMany({
-      data: [
-        ...generated.map((g) => ({
-          plantId: g.plantId,
-          type: CareTaskType.water,
-          dueDate: g.dueDate,
-          status: CareTaskStatus.pending,
-        })),
-        ...generatedFert.map((g) => ({
-          plantId: g.plantId,
-          type: CareTaskType.fertilize,
-          dueDate: g.dueDate,
-          status: CareTaskStatus.pending,
-        })),
-        {
-          plantId: plant.id,
-          type: CareTaskType.repot,
-          dueDate: repotDue,
-          status: CareTaskStatus.pending,
-        },
-        {
-          plantId: plant.id,
-          type: CareTaskType.inspect,
-          dueDate: inspectDue,
-          status: CareTaskStatus.pending,
-        },
-      ],
-    });
-
-    req.log.info(
-      { planInitMs: Date.now() - t0, horizonDays: 14 },
-      "plant_created_with_plan"
-    );
+    req.log.info({ baseIntervalDays: interval }, "plant_created_no_tasks");
 
     return plant;
   });

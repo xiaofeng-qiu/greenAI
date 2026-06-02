@@ -27,11 +27,23 @@
 
     <view v-for="p in displayPlants" :key="p.id" class="plant-card card">
       <view class="plant-card__main">
-        <view class="plant-avatar">{{ p.avatarLetter }}</view>
+        <view class="plant-avatar">
+          <image v-if="plantPhotos[p.id]" class="plant-avatar-img" :src="plantPhotos[p.id]" mode="aspectFill" />
+          <text v-else class="plant-avatar-letter">{{ p.nickname.charAt(0) }}</text>
+        </view>
         <view class="plant-card__body">
           <text class="plant-card__name">{{ p.nickname }}</text>
           <text class="plant-card__species">{{ p.speciesLabel }}</text>
         </view>
+      </view>
+      <view v-if="deviceMap[p.id]" class="plant-card__sensor">
+        <view class="sensor-row">
+          <text class="sensor-item">🌡️ {{ deviceMap[p.id].latestReading?.tempC ?? '--' }}°C</text>
+          <text class="sensor-item">💧 {{ deviceMap[p.id].latestReading?.soilMoisture ?? '--' }}%</text>
+          <text class="sensor-item">☀️ {{ deviceMap[p.id].latestReading?.lux ?? '--' }} lx</text>
+          <text class="sensor-item">🧪 pH {{ deviceMap[p.id].latestReading?.phLevel ?? '--' }}</text>
+        </view>
+        <text class="sensor-time">设备 {{ deviceMap[p.id].hardwareId }} · 最后上报 {{ deviceMap[p.id].lastSeenAt ? timeAgo(deviceMap[p.id].lastSeenAt) : '从未' }}</text>
       </view>
       <view class="plant-card__actions">
         <view class="pill pill--outline" @tap="goPlan(p.id)">计划</view>
@@ -52,10 +64,30 @@ interface Plant {
   nickname: string;
   speciesLabel: string;
 }
+interface SensorReading {
+  tempC: number | null;
+  soilMoisture: number | null;
+  phLevel: number | null;
+  lux: number | null;
+  measuredAt: string;
+}
+interface DeviceInfo {
+  id: string;
+  hardwareId: string;
+  label: string | null;
+  plantId: string | null;
+  lastSeenAt: string | null;
+  latestReading: SensorReading | null;
+}
 
 const plants = ref<Plant[]>([]);
 const searchQuery = ref("");
 const needLocationTip = ref(false);
+/** plantId → device bound to that plant */
+const deviceMap = ref<Record<string, DeviceInfo>>({});
+/** plantId → photo dataUrl */
+const plantPhotos = ref<Record<string, string>>({});
+const PHOTO_STORAGE_PREFIX = "plantPhoto_";
 
 const displayPlants = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
@@ -67,10 +99,39 @@ const displayPlants = computed(() => {
   );
 });
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins}分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  return `${days}天前`;
+}
+
 async function load() {
   if (!getToken()) return;
   try {
-    plants.value = await request({ path: "/plants" });
+    const [plantList, deviceList] = await Promise.all([
+      request<Plant[]>({ path: "/plants" }),
+      request<DeviceInfo[]>({ path: "/devices" }),
+    ]);
+    plants.value = plantList;
+    const map: Record<string, DeviceInfo> = {};
+    for (const d of deviceList) {
+      if (d.plantId) map[d.plantId] = d;
+    }
+    deviceMap.value = map;
+    // Load photos from local storage
+    const photos: Record<string, string> = {};
+    for (const p of plantList) {
+      try {
+        const base64 = uni.getStorageSync(PHOTO_STORAGE_PREFIX + p.id);
+        if (base64) photos[p.id] = `data:image/jpeg;base64,${base64}`;
+      } catch {}
+    }
+    plantPhotos.value = photos;
   } catch {}
 }
 
@@ -198,9 +259,17 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.plant-avatar-letter {
   font-size: 36rpx;
   font-weight: 700;
   color: #43a047;
+}
+.plant-avatar-img {
+  width: 100%;
+  height: 100%;
 }
 .plant-card__body { flex: 1; }
 .plant-card__name {
@@ -233,5 +302,27 @@ onShow(() => {
 .pill--danger {
   background: #fce8e8;
   color: #a33c3c;
+}
+.plant-card__sensor {
+  background: #f5faf5;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 14rpx;
+}
+.sensor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.sensor-item {
+  font-size: 22rpx;
+  color: #2e7d32;
+  font-weight: 600;
+}
+.sensor-time {
+  display: block;
+  font-size: 20rpx;
+  color: #9e9e9e;
+  margin-top: 8rpx;
 }
 </style>

@@ -28,21 +28,29 @@ const deviceLogsQuery = z.object({
 const devicesRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
 
-  /** 当前用户名下的全部设备，供「绑定到该植物」选择器使用。 */
+  /** 当前用户名下的全部设备，含最新读数。 */
   app.get("/devices", async (req) => {
-    return app.prisma.device.findMany({
+    const devices = await app.prisma.device.findMany({
       where: { userId: req.userId! },
       orderBy: [{ lastSeenAt: "desc" }, { createdAt: "desc" }],
-      select: {
-        id: true,
-        hardwareId: true,
-        label: true,
-        plantId: true,
-        wateringMessage: true,
-        lastSeenAt: true,
-        createdAt: true,
+      include: {
+        readings: {
+          orderBy: { measuredAt: "desc" },
+          take: 1,
+          select: { tempC: true, soilMoisture: true, phLevel: true, lux: true, measuredAt: true },
+        },
       },
     });
+    return devices.map((d) => ({
+      id: d.id,
+      hardwareId: d.hardwareId,
+      label: d.label,
+      plantId: d.plantId,
+      wateringMessage: d.wateringMessage,
+      lastSeenAt: d.lastSeenAt,
+      createdAt: d.createdAt,
+      latestReading: d.readings[0] ?? null,
+    }));
   });
 
   /** 设备经 HMAC 上报后落库的最近若干条运行日志（当前用户名下设备）。 */

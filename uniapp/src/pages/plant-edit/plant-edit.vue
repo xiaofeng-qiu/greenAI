@@ -1,5 +1,14 @@
 <template>
   <view class="page">
+    <view v-if="!isEdit && !photoPreview" class="identify-btn" @tap="onIdentify">
+      <text class="identify-ico">📷</text>
+      <text class="identify-text">拍照识别植物，自动填写信息</text>
+    </view>
+    <view v-if="!isEdit && photoPreview" class="photo-preview" @tap="onIdentify">
+      <image class="photo-img" :src="photoPreview" mode="aspectFill" />
+      <text class="photo-retake">重新拍照</text>
+    </view>
+
     <view class="section-title">基础信息</view>
     <view class="card">
       <view class="field">
@@ -66,6 +75,18 @@
       </view>
     </view>
 
+    <template v-if="deviceLabels.length > 1">
+      <text class="section-title">绑定设备（可选）</text>
+      <view class="card">
+        <view class="field">
+          <text class="label">关联传感器</text>
+          <picker mode="selector" :range="deviceLabels" :value="deviceIndex" @change="onDeviceChange">
+            <view class="picker-value">{{ deviceLabels[deviceIndex] }}</view>
+          </picker>
+        </view>
+      </view>
+    </template>
+
     <view class="submit-wrap">
       <view class="submit-btn" @tap="onSubmit">{{ isEdit ? '保存修改' : '保存植物' }}</view>
     </view>
@@ -75,7 +96,16 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { request } from "@/utils/request";
+import { request, clearToken } from "@/utils/request";
+import { chooseImageBase64 } from "@/utils/image";
+
+interface Device {
+  id: string;
+  hardwareId: string;
+  label: string | null;
+  plantId: string | null;
+  lastSeenAt: string | null;
+}
 
 const plantId = ref("");
 const isEdit = ref(false);
@@ -95,6 +125,19 @@ const waterAmountMl = ref("");
 const fertilizerType = ref("");
 const careTips = ref("");
 
+const devices = ref<Device[]>([]);
+const deviceLabels = ref<string[]>(["无"]);
+const deviceIndex = ref(0);
+const boundDeviceId = ref("");
+/** Set after create, triggers assessment sheet */
+const newPlantId = ref("");
+/** Devices in picker order: [null, boundDevice?, ...unbound] */
+const orderedDevices = ref<(Device | null)[]>([null]);
+
+const photoPreview = ref("");
+const identifyImageBase64 = ref("");
+const PHOTO_STORAGE_PREFIX = "plantPhoto_";
+
 const WATER_RANGE = ["low", "medium", "high"];
 const LIGHT_RANGE = ["low", "medium", "high"];
 const SOIL_VALUES: (string | null)[] = [null, "very_wet", "wet", "moderate", "dry", "very_dry"];
@@ -105,7 +148,36 @@ onLoad((options) => {
     isEdit.value = true;
     loadPlant(options.id);
   }
+  loadDevices();
 });
+
+async function loadDevices() {
+  try {
+    const list: Device[] = await request({ path: "/devices" });
+    devices.value = list;
+    buildDevicePicker();
+  } catch {}
+}
+
+function buildDevicePicker() {
+  const list = devices.value;
+  const bound = list.find(d => d.plantId === plantId.value);
+  const unbound = list.filter(d => !d.plantId);
+  const ordered: (Device | null)[] = [null];
+  if (bound) {
+    boundDeviceId.value = bound.id;
+    ordered.push(bound);
+  }
+  ordered.push(...unbound);
+  orderedDevices.value = ordered;
+  deviceLabels.value = ordered.map(d => {
+    if (!d) return "无";
+    const name = d.label || d.hardwareId;
+    if (d.plantId === plantId.value && d.plantId) return `${name}（已绑定）`;
+    return name;
+  });
+  deviceIndex.value = bound ? ordered.indexOf(bound) : 0;
+}
 
 async function loadPlant(id: string) {
   try {
@@ -140,11 +212,61 @@ function onInput(field: string, e: any) {
   else if (field === "careTips") careTips.value = val;
 }
 
+/** Returns device to bind (bind=true) or unbind (bind=false), or undefined if unchanged */
+function getSelectedDevice(): { id: string; bind: boolean } | undefined {
+  const sel = orderedDevices.value[deviceIndex.value];
+  if (!sel) {
+    // "无" selected — unbind if currently bound
+    if (boundDeviceId.value) return { id: boundDeviceId.value, bind: false };
+    return undefined;
+  }
+  if (sel.plantId === plantId.value) return undefined; // same binding
+  return { id: sel.id, bind: true };
+}
+
 function onPicker(field: string, e: any) {
   const idx = Number(e.detail?.value ?? 0);
   if (field === "waterIndex") waterIndex.value = idx;
   else if (field === "lightIndex") lightIndex.value = idx;
   else if (field === "soilIndex") soilIndex.value = idx;
+}
+
+function onDeviceChange(e: any) {
+  deviceIndex.value = Number(e.detail?.value ?? 0);
+}
+
+async function onIdentify() {
+  try {
+    const base64 = await chooseImageBase64();
+    photoPreview.value = `data:image/jpeg;base64,${base64}`;
+    identifyImageBase64.value = base64;
+    uni.showLoading({ title: "识别中", mask: true });
+    const data: any = await request({ path: "/plants/identify", method: "POST", data: { imageBase64: base64 } });
+    const best = data?.best;
+    if (!best || !best.name) {
+      uni.showToast({ title: "未识别到植物", icon: "none" });
+      return;
+    }
+    nickname.value = best.name;
+    speciesLabel.value = best.name;
+    if (best.taxonFamily) taxonFamily.value = best.taxonFamily;
+    if (best.careDifficulty) careDifficulty.value = best.careDifficulty;
+    if (best.careSummary) careTips.value = best.careSummary;
+    uni.showToast({ title: `识别成功：${best.name}`, icon: "success" });
+  } catch (e: any) {
+    const code = e?.statusCode;
+    const msg = e?.message || e?.errMsg || "";
+    if (msg.includes("cancel") || msg.includes("no_image")) { photoPreview.value = ""; identifyImageBase64.value = ""; return; }
+    if (code === 503) uni.showToast({ title: "服务端未配置识别", icon: "none" });
+    else if (code === 422) uni.showToast({ title: "未识别到植物", icon: "none" });
+    else if (code === 502) uni.showToast({ title: "识别服务异常", icon: "none" });
+    else if (code === 400) uni.showToast({ title: "图片数据异常", icon: "none" });
+    else if (code === 401) { clearToken(); uni.showToast({ title: "登录失效，请重新登录", icon: "none" }); }
+    else if (code === 0 || !code) uni.showToast({ title: "网络连接失败", icon: "none" });
+    else uni.showToast({ title: "识别失败", icon: "none" });
+  } finally {
+    uni.hideLoading();
+  }
 }
 
 function onSwitch(field: string, e: any) {
@@ -157,6 +279,18 @@ async function onSubmit() {
   if (!nickname.value.trim() || !speciesLabel.value.trim()) {
     uni.showToast({ title: "请填写昵称和品种", icon: "none" });
     return;
+  }
+
+  // Check duplicate nickname
+  if (!isEdit.value) {
+    try {
+      const existing: any[] = await request({ path: "/plants" });
+      const dup = existing.find(p => p.nickname === nickname.value.trim());
+      if (dup) {
+        uni.showToast({ title: "昵称已存在，请修改", icon: "none" });
+        return;
+      }
+    } catch {}
   }
 
   const body: Record<string, unknown> = {
@@ -181,14 +315,76 @@ async function onSubmit() {
     if (isEdit.value) {
       await request({ path: `/plants/${plantId.value}`, method: "PATCH", data: body });
       await request({ path: `/plants/${plantId.value}/plan/regenerate`, method: "POST", data: {} });
+      // Handle device binding/unbinding
+      const selectedDevice = getSelectedDevice();
+      if (selectedDevice !== undefined) {
+        await request({
+          path: `/devices/${selectedDevice.id}`,
+          method: "PATCH",
+          data: { plantId: selectedDevice.bind ? plantId.value : null },
+        });
+      }
+      uni.showToast({ title: "已保存", icon: "success" });
+      setTimeout(() => uni.navigateBack(), 800);
     } else {
-      await request({ path: "/plants", method: "POST", data: body });
+      const plant: any = await request({ path: "/plants", method: "POST", data: body });
+      newPlantId.value = plant.id;
+      // Bind device if selected
+      const sel = orderedDevices.value[deviceIndex.value];
+      if (sel) {
+        try {
+          await request({ path: `/devices/${sel.id}`, method: "PATCH", data: { plantId: plant.id } });
+        } catch {}
+      }
+      // Save photo to local storage for care list display
+      if (identifyImageBase64.value) {
+        try { uni.setStorageSync(PHOTO_STORAGE_PREFIX + plant.id, identifyImageBase64.value); } catch {}
+      }
+      showAssessmentSheet();
     }
-    uni.showToast({ title: "已保存", icon: "success" });
-    setTimeout(() => uni.navigateBack(), 800);
   } catch {
     uni.showToast({ title: "保存失败", icon: "none" });
   }
+}
+
+function showAssessmentSheet() {
+  uni.showActionSheet({
+    itemList: ["土壤拍照评估", "植物拍照诊断", "绑定硬件传感器", "稍后再说"],
+    success: (res) => {
+      if (res.tapIndex === 0) onSoilAssess();
+      else if (res.tapIndex === 1) onPhotoDiagnose();
+      else if (res.tapIndex === 2) onBindDevice();
+      else goBack();
+    },
+    fail: () => goBack(),
+  });
+}
+
+async function onSoilAssess() {
+  try {
+    const base64 = await chooseImageBase64();
+    uni.showLoading({ title: "评估中", mask: true });
+    await request({ path: "/soil/estimate-photo", method: "POST", data: { imageBase64: base64, plantId: newPlantId.value } });
+    await request({ path: `/plants/${newPlantId.value}/plan/regenerate`, method: "POST", data: {} });
+    uni.showToast({ title: "评估完成，已创建养护计划", icon: "success" });
+  } catch {
+    uni.showToast({ title: "评估失败，可稍后补充", icon: "none" });
+  } finally {
+    uni.hideLoading();
+    goBack();
+  }
+}
+
+async function onPhotoDiagnose() {
+  uni.navigateTo({ url: `/pages/diagnose/diagnose?plantId=${newPlantId.value}` });
+}
+
+function onBindDevice() {
+  uni.navigateTo({ url: `/pages/plant-edit/plant-edit?id=${newPlantId.value}` });
+}
+
+function goBack() {
+  setTimeout(() => uni.navigateBack(), 400);
 }
 </script>
 
@@ -286,5 +482,46 @@ async function onSubmit() {
   color: #fff;
   background: linear-gradient(135deg, #43a047, #66bb6a);
   box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.06);
+}
+.identify-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+  border: 2rpx dashed #a5d6a7;
+  margin-bottom: 24rpx;
+}
+.identify-ico {
+  font-size: 40rpx;
+}
+.identify-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2e7d32;
+}
+.photo-preview {
+  position: relative;
+  margin-bottom: 24rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.photo-img {
+  width: 100%;
+  height: 360rpx;
+  display: block;
+  background: #f5f5f5;
+}
+.photo-retake {
+  position: absolute;
+  bottom: 16rpx;
+  right: 16rpx;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
 }
 </style>

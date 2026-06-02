@@ -20,3 +20,4 @@ oled_test/
 
 # Build wrapper
 firmware/build.py
+.DS_Store
