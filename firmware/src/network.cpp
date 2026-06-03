@@ -216,7 +216,7 @@ function scan(){
      <small>${n.r}dBm ${n.e?lockIco():''}</small>
     </div>`
   ).join('')
- }).catch(e=>{el('netlist').textContent='扫描失败:'+e})
+  }).catch(e=>{el('netlist').textContent='扫描失败，请重试'})
 }
 function pick(s){el('ssid').value=s;el('pass').focus()}
 function submit_(){
@@ -225,14 +225,15 @@ function submit_(){
  fetch('/save',{method:'POST',body}).then(r=>r.json()).then(d=>{
   if(d.ok){r.className='status ok';r.textContent='✓ 已保存，正在连接 WiFi…';
     setTimeout(poll,3000)}
-  else{r.className='status err';r.textContent='✗ '+(d.err||'失败')}
- }).catch(e=>{r.className='status err';r.textContent='请求失败:'+e})
+  else{r.className='status err';r.textContent='✗ '+(d.err||'提交失败，请重试')}
+ }).catch(e=>{r.className='status err';r.textContent='请求失败，请检查设备连接'})
 }
 function poll(){
  fetch('/status').then(r=>r.json()).then(d=>{
   const r=el('result');
   if(d.ok){r.className='status ok';r.textContent='✓ 已连接！IP: '+d.ip+'  此页面可以关闭。'}
-  else{r.className='status info';r.textContent='⏳ 连接中… '+(d.err||'');setTimeout(poll,2000)}
+  else if(d.err){r.className='status err';r.textContent='✗ '+d.err;setTimeout(poll,5000)}
+  else{r.className='status info';r.textContent='⏳ 连接中…';setTimeout(poll,2000)}
  }).catch(_=>setTimeout(poll,2000))
 }
 scan();
@@ -295,7 +296,7 @@ static void hSave() {
 #  endif
     String bind = g_http.arg("bind");
     if (ssid.length() == 0) {
-        g_http.send(200, "application/json", "{\"ok\":false,\"err\":\"SSID empty\"}");
+        g_http.send(200, "application/json", "{\"ok\":false,\"err\":\"WiFi名称不能为空\"}");
         return;
     }
     g_ssid = ssid; g_pass = pass;
@@ -315,6 +316,7 @@ static void hSave() {
 
     Serial.printf("[PROV] Got SSID='%s' (pass len=%d), attempting connect...\n",
                   g_ssid.c_str(), g_pass.length());
+    g_lastError = "";
     g_state = PROV_STA_CONNECTING;
     g_wifiStartMs = millis();
     WiFi.begin(g_ssid.c_str(), g_pass.c_str());
@@ -429,12 +431,22 @@ void wifiProvLoop() {
             // 给前端一次拉取 /status 成功的机会，再关 AP
             delay(2000);
             stopSoftAP();
-        } else if (millis() - g_wifiStartMs > WIFI_TIMEOUT) {
-            g_lastError = "TIMEOUT/认证失败";
-            Serial.printf("[WiFi] Connect FAILED (status=%d)\n", WiFi.status());
-            WiFi.disconnect(false, false);
-            if (!g_apActive) startSoftAP();  // 重新拉起 AP 让用户重试
-            else g_state = PROV_AP_ACTIVE;
+        } else {
+            wl_status_t s = WiFi.status();
+            if (s == WL_NO_SSID_AVAIL && g_lastError.length() == 0) {
+                g_lastError = "未找到该WiFi信号，请检查名称";
+            } else if (s == WL_CONNECT_FAILED && g_lastError.length() == 0) {
+                g_lastError = "WiFi密码错误，请重新输入";
+            }
+            if (millis() - g_wifiStartMs > WIFI_TIMEOUT) {
+                if (g_lastError.length() == 0) {
+                    g_lastError = "连接超时，请检查WiFi信号强度";
+                }
+                Serial.printf("[WiFi] Connect FAILED (status=%d, err=%s)\n", s, g_lastError.c_str());
+                WiFi.disconnect(false, false);
+                if (!g_apActive) startSoftAP();
+                else g_state = PROV_AP_ACTIVE;
+            }
         }
         break;
     }
