@@ -132,7 +132,10 @@ async function load() {
       } catch {}
     }
     plantPhotos.value = photos;
-  } catch {}
+  } catch (e: any) {
+    const msg = e?.data?.message || e?.errMsg || "";
+    uni.showToast({ title: msg || "加载数据失败", icon: "none" });
+  }
 }
 
 async function loadMeTip() {

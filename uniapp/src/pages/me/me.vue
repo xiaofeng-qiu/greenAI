@@ -181,7 +181,10 @@ async function loadMeAndWeather() {
 async function loadDevices() {
   try {
     devices.value = await request({ path: "/devices" });
-  } catch {}
+  } catch (e: any) {
+    const msg = e?.data?.message || e?.errMsg || "";
+    uni.showToast({ title: msg || "获取设备列表失败", icon: "none" });
+  }
 }
 
 async function loadWeather() {
@@ -329,8 +332,9 @@ async function onCreateBindCode() {
     bindCode.value = data.code;
     const exp = new Date(data.expiresAt);
     bindExpiresText.value = `${exp.getHours().toString().padStart(2, "0")}:${exp.getMinutes().toString().padStart(2, "0")}`;
-  } catch {
-    uni.showToast({ title: "生成失败", icon: "none" });
+  } catch (e: any) {
+    const msg = e?.data?.message || e?.errMsg || "";
+    uni.showToast({ title: msg || "生成失败", icon: "none" });
   } finally {
     bindLoading.value = false;
   }

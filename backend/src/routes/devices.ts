@@ -60,9 +60,9 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
       where: { id, userId: req.userId! },
       select: { id: true },
     });
-    if (!device) return reply.status(404).send({ error: "not_found" });
+    if (!device) return reply.status(404).send({ error: "not_found", message: "设备不存在或无权限" });
     const q = deviceLogsQuery.safeParse(req.query ?? {});
-    if (!q.success) return reply.status(400).send({ error: "invalid_query" });
+    if (!q.success) return reply.status(400).send({ error: "invalid_query", message: "查询参数无效" });
     const logs = await app.prisma.deviceIngestLog.findMany({
       where: { deviceId: id },
       orderBy: { createdAt: "desc" },
@@ -84,13 +84,13 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
     const id = (req.params as { id: string }).id;
     const parsed = patchBody.safeParse(req.body);
     if (!parsed.success) {
-      return reply.status(400).send({ error: "invalid_body" });
+      return reply.status(400).send({ error: "invalid_body", message: "请求数据格式错误" });
     }
     const device = await app.prisma.device.findFirst({
       where: { id, userId: req.userId! },
       select: { id: true },
     });
-    if (!device) return reply.status(404).send({ error: "not_found" });
+    if (!device) return reply.status(404).send({ error: "not_found", message: "设备不存在或无权限" });
 
     const data: { label?: string | null; plantId?: string | null; wateringMessage?: string | null } = {};
     if (parsed.data.label !== undefined) {
@@ -105,7 +105,7 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
           select: { id: true },
         });
         if (!plant) {
-          return reply.status(404).send({ error: "plant_not_found" });
+          return reply.status(404).send({ error: "plant_not_found", message: "目标植物不存在或无权限" });
         }
         data.plantId = plant.id;
       }

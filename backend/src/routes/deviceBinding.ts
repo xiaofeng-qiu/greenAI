@@ -64,12 +64,12 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
   app.post("/devices/claim-binding-code", async (req, reply) => {
     const ip = clientIp(req);
     if (!rateLimitClaim(ip)) {
-      return reply.status(429).send({ error: "rate_limited" });
+      return reply.status(429).send({ error: "rate_limited", message: "请求过于频繁，请稍后再试" });
     }
 
     const parsed = claimBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return reply.status(400).send({ error: "invalid_body" });
+      return reply.status(400).send({ error: "invalid_body", message: "请求数据格式错误，请检查绑定码和设备ID" });
     }
 
     const { code, hardwareId } = parsed.data;
@@ -118,12 +118,12 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (result.kind === "not_found") {
-        return reply.status(404).send({ error: "invalid_or_expired_code" });
+        return reply.status(404).send({ error: "invalid_or_expired_code", message: "绑定码无效或已过期，请重新生成" });
       }
       if (result.kind === "wrong_owner") {
         return reply
           .status(409)
-          .send({ error: "hardware_id_bound_to_other_user" });
+          .send({ error: "hardware_id_bound_to_other_user", message: "该硬件已被其他用户绑定" });
       }
 
       const config = loadConfig();
@@ -136,7 +136,7 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
       return out;
     } catch (e) {
       req.log.warn({ err: String(e) }, "device_binding_claim_failed");
-      return reply.status(500).send({ error: "claim_failed" });
+      return reply.status(500).send({ error: "claim_failed", message: "绑定失败，请稍后重试" });
     }
   });
 };

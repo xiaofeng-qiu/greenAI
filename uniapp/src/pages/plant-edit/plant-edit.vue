@@ -162,7 +162,10 @@ async function loadDevices() {
     const list: Device[] = await request({ path: "/devices" });
     devices.value = list;
     buildDevicePicker();
-  } catch {}
+  } catch (e: any) {
+    const msg = e?.data?.message || e?.errMsg || "";
+    uni.showToast({ title: msg || "获取设备列表失败", icon: "none" });
+  }
 }
 
 function buildDevicePicker() {
@@ -340,7 +343,10 @@ async function onSubmit() {
       if (sel) {
         try {
           await request({ path: `/devices/${sel.id}`, method: "PATCH", data: { plantId: plant.id } });
-        } catch {}
+        } catch (e: any) {
+          const msg = e?.data?.message || e?.errMsg || "";
+          uni.showToast({ title: msg || "设备绑定失败", icon: "none" });
+        }
       }
       // Save photo to local storage for care list display
       if (identifyImageBase64.value) {
@@ -348,8 +354,9 @@ async function onSubmit() {
       }
       showAssessmentSheet();
     }
-  } catch {
-    uni.showToast({ title: "保存失败", icon: "none" });
+  } catch (e: any) {
+    const msg = e?.data?.message || e?.errMsg || "";
+    uni.showToast({ title: msg || "保存失败", icon: "none" });
   }
 }
 
