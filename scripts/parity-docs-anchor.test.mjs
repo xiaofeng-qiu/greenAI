@@ -38,32 +38,29 @@ function mustContain(filePath, substrings, label) {
   }
 }
 
-test("miniprogram plant-plan shows soil summary", () => {
-  const jsPath = join(root, "miniprogram/pages/plant-plan/plant-plan.js");
-  const text = readFileSync(jsPath, "utf8");
+test("plants route exposes soil-records and plan-regenerate APIs", () => {
+  const routePath = join(root, "backend/src/routes/plants.ts");
+  const text = readFileSync(routePath, "utf8");
   assert.ok(
-    text.includes("loadSoilSummary"),
-    "plant-plan must load soil summary"
+    text.includes('app.get("/plants/:id/soil-records"'),
+    "plants route must expose soil-records API"
   );
   assert.ok(
-    text.includes("/soil-records"),
-    "plant-plan must call soil-records API"
+    text.includes('app.post("/plants/:id/plan/regenerate"'),
+    "plants route must expose plan regenerate API"
   );
 });
 
-test("miniprogram plant-edit loads soil-records API", () => {
-  const jsPath = join(
-    root,
-    "miniprogram/pages/plant-edit/plant-edit.js"
-  );
-  const text = readFileSync(jsPath, "utf8");
+test("soil-estimate route exposes API and persists records", () => {
+  const routePath = join(root, "backend/src/routes/soilEstimate.ts");
+  const text = readFileSync(routePath, "utf8");
   assert.ok(
-    text.includes("/soil-records"),
-    "plant-edit must call GET /plants/:id/soil-records"
+    text.includes('app.post("/soil/estimate-photo"'),
+    "soil-estimate route must expose estimate-photo API"
   );
   assert.ok(
-    text.includes("loadSoilRecords"),
-    "plant-edit must define loadSoilRecords"
+    text.includes("app.prisma.soilRecord.create"),
+    "soil-estimate route must persist soil-record entries"
   );
 });
 

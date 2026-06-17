@@ -1,102 +1,41 @@
 {
   "pages": [
     {
-      "path": "pages/index/index",
+      "path": "pages/main/main",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "GreenAI Bot"
       }
     },
     {
-      "path": "pages/care/care",
+      "path": "pages/care/detail",
       "style": {
-        "navigationBarTitleText": "养护"
+        "navigationBarTitleText": "植物详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
       }
     },
     {
-      "path": "pages/knowledge/knowledge",
+      "path": "pages/care/add",
       "style": {
-        "navigationBarTitleText": "知识"
-      }
-    },
-    {
-      "path": "pages/me/me",
-      "style": {
-        "navigationBarTitleText": "我"
+        "navigationBarTitleText": "添加植物",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
       }
     },
     {
       "path": "pages/knowledge/detail",
       "style": {
-        "navigationBarTitleText": "文章详情"
-      }
-    },
-    {
-      "path": "pages/plant-edit/plant-edit",
-      "style": {
-        "navigationBarTitleText": "编辑植物"
-      }
-    },
-    {
-      "path": "pages/plant-plan/plant-plan",
-      "style": {
-        "navigationBarTitleText": "养护计划"
-      }
-    },
-    {
-      "path": "pages/diagnose/diagnose",
-      "style": {
-        "navigationBarTitleText": "问题诊断"
-      }
-    },
-    {
-      "path": "pages/identify-result/identify-result",
-      "style": {
-        "navigationBarTitleText": "识别结果"
-      }
-    },
-    {
-      "path": "pages/soil-result/soil-result",
-      "style": {
-        "navigationBarTitleText": "土壤评估"
+        "navigationBarTitleText": "文章详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "GreenAI Bot",
-    "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#FFFFFF"
-  },
-  "tabBar": {
-    "color": "#9E9E9E",
-    "selectedColor": "#43A047",
-    "borderStyle": "black",
-    "backgroundColor": "#FFFFFF",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "static/tab/home.png",
-        "selectedIconPath": "static/tab/home-active.png"
-      },
-      {
-        "pagePath": "pages/care/care",
-        "text": "养护",
-        "iconPath": "static/tab/care.png",
-        "selectedIconPath": "static/tab/care-active.png"
-      },
-      {
-        "pagePath": "pages/knowledge/knowledge",
-        "text": "知识",
-        "iconPath": "static/tab/knowledge.png",
-        "selectedIconPath": "static/tab/knowledge-active.png"
-      },
-      {
-        "pagePath": "pages/me/me",
-        "text": "我",
-        "iconPath": "static/tab/me.png",
-        "selectedIconPath": "static/tab/me-active.png"
-      }
-    ]
+    "navigationBarBackgroundColor": "#f0faf5",
+    "backgroundColor": "#e8ecf0"
   }
 }
