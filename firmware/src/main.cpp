@@ -3,8 +3,9 @@
  * @brief PlantGuardian 硬件 Demo — 主控入口
  *
  * 总线分配:
- *   Wire  (I²C0, GPIO5 SDA / GPIO4 SCL): SHT30 + OLED (SSD1306)
+ *   Wire  (I²C0, GPIO5 SDA / GPIO4 SCL): SHT30（需自补 4.7kΩ 上拉）
  *   Wire1 (I²C1, GPIO6 SDA / GPIO7 SCL): BH1750
+ *   SPI   (SCK GPIO12 / MOSI GPIO11): TFT ILI9341 240x320
  */
 
 #include <Arduino.h>
@@ -84,9 +85,9 @@ void setup() {
 
     // --- I²C 初始化 ---
     Wire.begin(PIN_SHT_SDA, PIN_SHT_SCL);
-    Wire.setClock(100000);   // 与 OLED 共线：低速更稳（杜邦线/洞洞板）
+    Wire.setClock(100000);   // 低速更稳（杜邦线/洞洞板）
     Wire.setTimeOut(50);     // 避免 I²C 卡死拖死主循环
-    Serial.printf("[Wire ] SDA=GPIO%d SCL=GPIO%d (SHT30 + OLED)\n", PIN_SHT_SDA, PIN_SHT_SCL);
+    Serial.printf("[Wire ] SDA=GPIO%d SCL=GPIO%d (SHT30)\n", PIN_SHT_SDA, PIN_SHT_SCL);
     Wire1.begin(PIN_LIGHT_SDA, PIN_LIGHT_SCL);
     Wire1.setClock(100000);     // BH1750 用低速更稳，避免长线/弱上拉导致 stuck
     Wire1.setTimeOut(50);       // 单次事务最长 50ms，避免拖死主循环
@@ -94,11 +95,11 @@ void setup() {
     delay(50);
 
     // --- 模块初始化 ---
-    displayInit();    // OLED (HW I²C, 与 SHT30 共线, 板载上拉稳定总线)
+    displayInit();    // TFT ILI9341 (HW SPI)
     initSensors();    // SHT30 + BH1750 + ADC 分辨率
     ttsInit();        // TTS (UART1)
     delay(200);
-    // 启动测试：让喇叭朗读一句话 + OLED 上眨眼动画
+    // 启动测试：让喇叭朗读一句话 + 屏上眨眼动画
     ttsSpeak("植物管家已启动");
     displayBootAnimation();
     wifiProvSetup();  // BLE 配网 / WiFi 连接
