@@ -20,6 +20,27 @@
 #include "network.h"
 
 // ============================================================
+//  板载状态灯（WS2812 / GPIO48）
+//  注意：DevKitC-1 板载是可编程全彩灯珠，必须用 neopixelWrite（RMT 时序），
+//        普通 digitalWrite 控制不了，会“莫名一直亮”。
+// ============================================================
+static inline void setStatusLed(uint8_t r, uint8_t g, uint8_t b) {
+    neopixelWrite(PIN_LED_BUILTIN, r, g, b);
+}
+
+// 正常运行：绿色心跳（每 2s 闪一下，平时微亮）；未联网：黄色慢闪
+static void updateStatusLed(bool wifiConnected) {
+    unsigned long t = millis();
+    if (wifiConnected) {
+        bool beat = (t % 2000) < 80;
+        setStatusLed(0, beat ? 28 : 3, 0);
+    } else {
+        bool on = (t % 1000) < 500;
+        setStatusLed(on ? 26 : 0, on ? 16 : 0, 0);
+    }
+}
+
+// ============================================================
 //  Serial CSV
 // ============================================================
 #if STAGE_SERIAL
@@ -75,8 +96,7 @@ void setup() {
     Serial.println("[POWER] brownout detector enabled (default)");
     printResetReason();
 
-    pinMode(PIN_LED_BUILTIN, OUTPUT);
-    digitalWrite(PIN_LED_BUILTIN, LOW);
+    setStatusLed(0, 0, 0);          // RGB 状态灯先熄灭
     pinMode(PIN_BOOT_BUTTON, INPUT_PULLUP);
 
     // --- I²C 总线恢复 ---
@@ -122,7 +142,8 @@ static bool bootButtonStableLow() {
     return true;
 }
 
-static void checkBootButton() {
+// 返回 true 表示本函数正在接管状态灯（按键计时中），loop 不要再覆盖
+static bool checkBootButton() {
     static unsigned long pressStart = 0;
     static bool          fired      = false;
     bool pressed = bootButtonStableLow();
@@ -133,25 +154,27 @@ static void checkBootButton() {
             Serial.println("[BOOT] stable press, hold 5s to clear WiFi creds...");
         }
         unsigned long held = millis() - pressStart;
-        // 闪烁 LED 表示正在计时
-        digitalWrite(PIN_LED_BUILTIN, (held / 200) & 1 ? HIGH : LOW);
+        // 红灯快闪表示正在计时
+        bool on = (held / 200) & 1;
+        setStatusLed(on ? 40 : 0, 0, 0);
         if (!fired && held >= BOOT_LONG_PRESS_MS) {
             fired = true;
-            digitalWrite(PIN_LED_BUILTIN, HIGH);
+            setStatusLed(60, 0, 0);     // 触发：红灯常亮
             Serial.println("[BOOT] LONG PRESS — clearing creds and rebooting...");
             wifiClearCreds();
             delay(500);
             ESP.restart();
         }
-    } else {
-        if (pressStart != 0) {
-            unsigned long held = millis() - pressStart;
-            Serial.printf("[BOOT] released after %lu ms\n", held);
-            digitalWrite(PIN_LED_BUILTIN, LOW);
-        }
-        pressStart = 0;
-        fired      = false;
+        return true;
     }
+
+    if (pressStart != 0) {
+        unsigned long held = millis() - pressStart;
+        Serial.printf("[BOOT] released after %lu ms\n", held);
+    }
+    pressStart = 0;
+    fired      = false;
+    return false;
 }
 
 // ============================================================
@@ -195,7 +218,7 @@ static const unsigned long SENSOR_INTERVAL_MS = 2000;
 static SensorData lastData;
 
 void loop() {
-    checkBootButton();
+    bool bootLedBusy = checkBootButton();
     wifiProvLoop();
 
     unsigned long now = millis();
@@ -213,6 +236,7 @@ void loop() {
     }
 
     displayUpdate(lastData);
+    if (!bootLedBusy) updateStatusLed(lastData.wifiConnected);
     delay(500);
     yield();
 }
