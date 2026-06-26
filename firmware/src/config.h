@@ -33,10 +33,9 @@
 #define PIN_SHT_SDA        5
 #define PIN_SHT_SCL        4
 
-// TFT ILI9341 240x320 (4-wire SPI)，TFT_eSPI 彩色 + U8g2 中文字体
-//   屏丝印 → ESP32-S3：VCC→3V3  GND→GND  CS→10  RESET→14  DC→13
-//            SDI(MOSI)→11  SCK→12  LED(背光)→21  SDO(MISO) 不接
-//   触摸 (XPT2046, T_*) 暂不接线/不驱动。
+// TFT ST7735S 1.44" 128x128 (4-wire SPI)，TFT_eSPI 彩色 + U8g2 中文字体
+//   屏丝印 → ESP32-S3：VCC→3V3  GND→GND  CS→10  RES→14  DC→13
+//            SDA(MOSI)→11  SCL(SCLK)→12  BLK(背光)→21
 //   注意：SPI/CS/DC/RST 引脚由 platformio.ini 的 TFT_eSPI build_flags 配置，
 //        下面这些宏仅作文档对照；代码里只用 PIN_TFT_BL 控制背光。
 #define PIN_TFT_SCLK       12
