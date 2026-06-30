@@ -1,6 +1,6 @@
 # 植物管家 (greenAI) — 固件
 
-针对 **ESP32-S3-N16R8** 的面包板模块化固件：传感器采集 → TFT(ILI9341) 中文显示 → WiFi 配网 → 后端上报。
+针对 **ESP32-S3-N16R8** 的面包板模块化固件：传感器采集 → TFT(ILI9341) 中文显示 → 语音播报（服务端 edge-tts + I2S）→ WiFi 配网 → 后端上报。
 
 ## 目录结构
 
@@ -14,8 +14,9 @@ firmware/
 │   ├── ph_sensor.{h,cpp} # pH DFRobot 官方算法（10 采样排序去极值取中 6 点）
 │   ├── display.{h,cpp}   # TFT(ILI9341) 中文界面 + 眨眼/笑脸动画 + WiFi 状态图标
 │   ├── network.{h,cpp}   # WiFi 配网 (SoftAP + Captive Portal) + 上报调度
-│   ├── greenai_api.{h,cpp} # greenAI：HMAC + /internal/sensors/ingest 与 /internal/sensors/logs
-│   └── tts.{h,cpp}       # 语音播报 (可选)
+│   ├── greenai_api.{h,cpp} # greenAI：HMAC + /internal/sensors/ingest、/logs、/devices/config、/tts
+│   ├── tts.{h,cpp}       # 语音播报：拉服务端 edge-tts MP3 → ESP8266Audio 解码 → I2S(MAX98357A)
+│   └── boot_sound.h      # 开机离线提示音（内置 MP3，由 backend 的 gen:boot-sound 生成）
 └── README.md
 ```
 
@@ -38,12 +39,13 @@ VS Code → 扩展 → 搜索 **PlatformIO IDE** → 安装。
 | TFT LED(背光) | **GPIO21** | HIGH 点亮；不调光可直接接 3V3 |
 | 土壤湿度 AO | **GPIO1** | ADC1, 电容式模块输出 |
 | pH 模块 Po | **GPIO2** | ADC1, ⚠ 必须分压 5V→3.3V |
-| TTS TX → ESP RX | **GPIO18** | UART1 RX（可选） |
-| TTS RX ← ESP TX | **GPIO17** | UART1 TX（可选） |
+| I2S BCLK / LRC / DIN | **GPIO17 / GPIO18 / GPIO16** | MAX98357A 数字功放（原 LU6288 已弃用） |
 | BOOT 按钮 | **GPIO0** | 长按 5 秒清凭证 + 重启 |
-| 内置 LED | **GPIO48** | 心跳 / 配网期间闪烁 |
+| 内置 RGB 灯 | **GPIO48** | WS2812 状态灯（绿心跳/黄慢闪/红快闪） |
 
 > TFT 屏 **VCC→3V3、GND→GND**；SDO(MISO) 与触摸 `T_*`（XPT2046）暂不接、不驱动。彩色 UI 用 `TFT_eSPI` 绘图，中文用 `U8g2_for_TFT_eSPI`（复用 wqy GB2312 字体）。
+>
+> **MAX98357A（I2S 功放）**：`BCLK→17  LRC→18  DIN→16`；`VIN→5V`（4-8Ω 3W 喇叭大音量必须 5V，否则削顶/欠压重启）；`GND` 共地；`SD→3V3`（常开）；`GAIN` 悬空(9dB)；喇叭 `⊕/⊖` 接喇叭，**⊖ 绝不接地**（BTL 差分）。⚠ 功放/喇叭线远离 **GPIO0(BOOT)**，避免干扰误触发。
 
 ### 3. 编译 & 上传
 
@@ -75,7 +77,7 @@ VS Code → 扩展 → 搜索 **PlatformIO IDE** → 安装。
 ```c
 #define STAGE_SERIAL       1   // 串口 CSV 输出
 #define STAGE_OLED         1   // TFT(ILI9341) 中文显示（沿用此开关名）
-#define STAGE_TTS          0   // 语音播报
+#define STAGE_TTS          1   // 语音播报（服务端 edge-tts → I2S）
 #define STAGE_PH           1   // pH 读取
 #define STAGE_WIFI_PROV    1   // SoftAP 配网
 #define STAGE_WIFI_UPLOAD  1   // 上报后端
@@ -110,6 +112,32 @@ pH 算法在 [src/ph_sensor.cpp](src/ph_sensor.cpp)：10 次 `analogRead` → �
 
 屏幕走 4 线 SPI，使用 **TFT_eSPI** 做彩色绘图（圆/椭圆/三角/进度条/动画），文字叠加用 **U8g2_for_TFT_eSPI** 取得中文字形与颜色。SPI 引脚、驱动型号在 `platformio.ini` 的 `build_flags` 里配置（`-DILI9341_DRIVER`、`-DTFT_MOSI=11`、`-DTFT_SCLK=12`、`-DTFT_CS=10`、`-DTFT_DC=13`、`-DTFT_RST=14` 等）；背光 `PIN_TFT_BL`(GPIO21) 在 `displayInit()` 拉高。数据面板用「模式判断 + 实底字体覆盖」避免每秒全屏刷新闪烁。
 
+### 语音播报（服务端 edge-tts + I2S，已替换 LU6288）
+
+合成放到**服务端**，设备只负责**联网拉音频 + 解码播放**，音质好、文案可动态：
+
+- **后端**：`POST /internal/tts`（HMAC 同 `/internal/sensors/ingest`），入参 `{ hardwareId, text }`，返回 **24kHz 单声道 MP3**。实现 `backend/src/services/edgeTts.ts` 通过子进程调用官方维护的 **edge-tts (Python)**——
+  ```bash
+  pip install edge-tts          # 服务器/开发机都要装
+  ```
+  命令名可用环境变量 `EDGE_TTS_BIN` 覆盖（如 `EDGE_TTS_BIN="python -m edge_tts"`）。
+- **固件**：`tts.cpp` 用 `greenaiFetchTts()` 拉 MP3 进内存，`ESP8266Audio`（`AudioGeneratorMP3` + `AudioOutputI2S`）解码经 I2S 推 MAX98357A。`ttsSpeak()` 为阻塞式（播报偶发，可接受）。
+  - 库锁定 `earlephilhower/ESP8266Audio@1.9.7`（新版需 Arduino core 3.x 的 `i2s_std.h`，本工程 core 2.0.x 用旧 I2S）。
+  - 音量在 `tts.cpp` 的 `out.SetGain(0.5f)`（破音就降到 0.3）。
+- **触发点**：联网后温度稳定时**环境播报一次**；检测到**浇水**时播报回馈句（文案可由小程序经 `/internal/devices/config` 下发）。
+
+### 开机离线提示音（未配网也能响）
+
+开机时还没联网，服务端 TTS 用不了，故用**烧进 flash 的 MP3** 离线播放（`ttsPlayBootClip()`）：
+
+```bash
+cd backend
+npm run gen:boot-sound -- "植物管家已启动"     # 用 edge-tts 合成并写 firmware/src/boot_sound.h
+# 若 edge-tts 不在 PATH：EDGE_TTS_BIN="python -m edge_tts" npm run gen:boot-sound -- "植物管家已启动"
+```
+
+未生成时 `boot_sound.h` 为占位（`HAS_BOOT_SOUND 0`），开机不出声但可正常编译。
+
 ### 双 I²C 总线
 
 SHT30 与 BH1750 默认地址段会冲突；本工程让 BH1750 独占 `Wire1`，SHT30 用 `Wire`。⚠ 旧 OLED 移除后，`Wire`(GPIO5/4) 失去原 OLED 模块自带的 4.7kΩ 上拉，**需在 SDA/SCL 各补一颗 4.7kΩ 上拉到 3V3**，否则 SHT30 可能读不到。
@@ -117,11 +145,11 @@ SHT30 与 BH1750 默认地址段会冲突；本工程让 BH1750 独占 `Wire1`�
 ## BOOT 长按复位
 
 正常运行时**按住 BOOT 键 5 秒**：
-- LED 每 200ms 闪烁一次作为反馈
+- RGB 灯红色快闪作为反馈
 - 触发后清空 NVS 中保存的 SSID / 密码 / API 与上报相关字段
 - 自动重启进入配网模式
 
-短按或不足 5 秒释放不会触发。
+短按或不足 5 秒释放不会触发。**安全防护**：BOOT(GPIO0) 必须**先检测到松开(高)才武装**——若上电时 GPIO0 已被拉低（接线/功放干扰），不会误判为长按而清凭证死循环（见排障）。
 
 ## 排障
 
@@ -141,3 +169,8 @@ SHT30 与 BH1750 默认地址段会冲突；本工程让 BH1750 独占 `Wire1`�
 | pH 不准 | 确认 3.3V 直供或分压开关 `PH_USE_VOLTAGE_DIVIDER_3` 与 pH4/7 缓冲液，再改 `PH_SLOPE` / `PH_OFFSET` |
 | pH 始终 14 或 0 | GPIO2 浮空 / 没共地 / 5V 直进未分压（ADC 饱和）|
 | 移动后面板不停重启 | 串口看 `[RESET]`：`brownout`→USB/5V/GND 接触不良；`sw`→勿碰 BOOT(GPIO0) |
+| 播放破音 | `SetGain` 太大（降到 0.3）；功放 VIN 没接 5V（4-8Ω 喇叭必须 5V）；GAIN 脚别接高；电源加 220-470µF 电容 |
+| 一直重启且打印清 ssid/pass/... 的 NOT_FOUND | BOOT 长按被误触发（GPIO0 被拉低）：功放/喇叭线远离 GPIO0；查 SD/GAIN 别误接 0；已加「松开才武装」防护 |
+| 联网了却没声音 | 设备未绑定(`sensorKey`)/`apiBase` 未填；服务器没装 `edge-tts` 或无外网；串口看 `[TTS]` 行 |
+| 开机没声音 | 没生成开机音（`boot clip not embedded`）→ 在 backend 跑 `npm run gen:boot-sound` 后重新烧录 |
+| 编译报 `driver/i2s_std.h not found` | ESP8266Audio 版本过新，需锁 `@1.9.7`（本工程 Arduino core 2.0.x 用旧 I2S）|
