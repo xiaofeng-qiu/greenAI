@@ -24,7 +24,7 @@
 #  define GREENAI_API_BASE_DEFAULT ""
 #endif
 
-// 语音：仅 LU6288 类模块（UART 标记协议 + GBK），与 firmware/test-voice-lu6288 同源；勿接宇音 SYN6288 0xFD 协议片。
+// 语音：服务端 edge-tts 合成 → 后端 /internal/tts 返回 MP3 → 设备 ESP8266Audio 解码经 I2S 推 MAX98357A。（已替换原 LU6288 UART 方案）
 
 // ============================================================
 //  Pin Definitions
@@ -55,14 +55,12 @@
 #define PIN_SOIL_MOISTURE  1
 #define PIN_PH             2
 
-// TTS UART1
-#define PIN_TTS_RX         18
-#define PIN_TTS_TX         17
-
-/** 1: 每次 ttsSpeak 后读模块 TX→ESP RX 并打印 hex；调通后可改 0 省约 100ms。 */
-#ifndef TTS_DEBUG_MODULE_RX
-#  define TTS_DEBUG_MODULE_RX 1
-#endif
+// I2S 音频输出 (MAX98357A)：服务端 edge-tts 合成 MP3 → ESP8266Audio 解码 → I2S
+//   MAX98357A：BCLK→17  LRC(LRCLK)→18  DIN→16  VIN→5V/3V3  GND→GND
+//              SD→3V3(常开)  GAIN→悬空(9dB)；喇叭 4-8Ω 3W（⊖ 勿接地）
+#define PIN_I2S_BCLK       17
+#define PIN_I2S_LRC        18
+#define PIN_I2S_DIN        16
 
 // 板载 LED
 #define PIN_LED_BUILTIN    48

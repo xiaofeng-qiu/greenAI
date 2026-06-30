@@ -36,6 +36,13 @@ void greenaiLog(const char* level, const char* message);
 void greenaiMarkBootOnce();
 
 /**
+ * 文本转语音：HMAC 签名 POST /internal/tts，把返回的 MP3 读进新分配的内存缓冲。
+ * 成功返回 true，并通过 *outBuf/*outLen 输出（调用方负责 free(*outBuf)）。
+ * 失败返回 false（未配置 / 未联网 / NTP 未就绪 / HTTP 非 200 / 内存不足）。
+ */
+bool greenaiFetchTts(const char* text, uint8_t** outBuf, size_t* outLen);
+
+/**
  * 周期性拉取设备配置：POST /internal/devices/config（HMAC 同 ingest）。
  * 当前仅返回 wateringMessage；如果服务端有变更，写入 NVS plantguard/waterMsg
  * 并调用 ttsInvalidateConfig()，让下一次浇水播报使用新文案。

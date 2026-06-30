@@ -119,8 +119,8 @@ void setup() {
     initSensors();    // SHT30 + BH1750 + ADC 分辨率
     ttsInit();        // TTS (UART1)
     delay(200);
-    // 启动测试：让喇叭朗读一句话 + 屏上眨眼动画
-    ttsSpeak("植物管家已启动");
+    // 开机离线提示音（内置 MP3，未配网也能响）+ 屏上眨眼动画
+    ttsPlayBootClip();
     displayBootAnimation();
     wifiProvSetup();  // BLE 配网 / WiFi 连接
 
@@ -146,7 +146,14 @@ static bool bootButtonStableLow() {
 static bool checkBootButton() {
     static unsigned long pressStart = 0;
     static bool          fired      = false;
+    static bool          armed      = false;   // 必须先看到松开(HIGH)才接受按下
     bool pressed = bootButtonStableLow();
+
+    // 防御：上电时 GPIO0 若已是低（接线/干扰拉低），不当作长按，避免误清凭证+重启死循环。
+    if (!armed) {
+        if (!pressed) armed = true;            // 检测到释放，正式武装
+        return false;
+    }
 
     if (pressed) {
         if (pressStart == 0) {

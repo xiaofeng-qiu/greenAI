@@ -3,6 +3,8 @@
 
 void ttsInit();
 void ttsSpeak(const char* text);
+/** 播放内置的离线开机提示音（烧进 flash 的 MP3）；未配网也可用。未内置时为空操作。 */
+void ttsPlayBootClip();
 /** 上电后：温湿度读数稳定（或超时）时只播报一次环境数据，之后不再周期播报。 */
 void ttsLoop(const SensorData& d);
 

@@ -3,57 +3,24 @@
 
 #if STAGE_TTS
 
-#  include <HardwareSerial.h>
 #  include <Preferences.h>
 #  include <cmath>
 #  include <cstring>
+#  include <cstdlib>
+
+#  include <AudioFileSourcePROGMEM.h>
+#  include <AudioGeneratorMP3.h>
+#  include <AudioOutputI2S.h>
 
 #  include "display.h"
-#  include "tts_utf8_gbk.h"
+#  include "greenai_api.h"
+#  include "boot_sound.h"
 
-static HardwareSerial TTS_Serial(1);
-
-// ---- LU6288：与 firmware/test-voice-lu6288/src/main.cpp 同源（9600、标记串、延时）----
-static void lu6288MusicOff() {
-    TTS_Serial.print("<M>0");
-    delay(50);
-    TTS_Serial.flush();
-}
-
-/** 发送 GBK 正文（不含 <G> 前缀）；内部先 <M>0 再 <G>+payload，同 test 中「关背景音乐后播合成串」顺序。 */
-static void lu6288SpeakGbkPayload(const uint8_t* gbk, size_t len) {
-    lu6288MusicOff();
-    TTS_Serial.print("<G>");
-    for (size_t i = 0; i < len; i++) TTS_Serial.write(gbk[i]);
-    TTS_Serial.flush();
-}
-
-#  if TTS_DEBUG_MODULE_RX
-static void ttsDrainModuleRx() {
-    while (TTS_Serial.available()) (void)TTS_Serial.read();
-}
-
-static void ttsLogModuleRx(unsigned waitMs) {
-    delay(15);
-    uint8_t buf[40];
-    size_t  n = 0;
-    unsigned long t0 = millis();
-    while (millis() - t0 < waitMs && n < sizeof(buf)) {
-        int c = TTS_Serial.read();
-        if (c >= 0)
-            buf[n++] = (uint8_t)c;
-        else
-            delay(1);
-    }
-    if (n == 0) {
-        Serial.println("[TTS] module RX: (no bytes — TX→GPIO18? 共地? 供电?)");
-        return;
-    }
-    Serial.printf("[TTS] module RX (%u B): ", (unsigned)n);
-    for (size_t i = 0; i < n; i++) Serial.printf("%02X ", buf[i]);
-    Serial.println();
-}
-#  endif
+// ============================================================
+//  语音输出：文本 → 后端 /internal/tts (edge-tts) 返回 MP3 →
+//            ESP8266Audio 解码 → I2S 推 MAX98357A 播放。
+//  接口 ttsSpeak/ttsLoop/ttsSpeakWatering 保持不变（仅底层换实现）。
+// ============================================================
 
 // ---- 浇水回馈文案 (NVS 缓存) ----
 static const char* WATERING_DEFAULT_MSG =
@@ -62,38 +29,53 @@ static String g_waterMsg;
 static bool   g_waterMsgLoaded = false;
 
 void ttsInit() {
-    TTS_Serial.begin(9600, SERIAL_8N1, PIN_TTS_RX, PIN_TTS_TX);
-    Serial.printf("[TTS] LU6288 UART1 RX=GPIO%d TX=GPIO%d @9600 (cf. test-voice-lu6288)\n", PIN_TTS_RX, PIN_TTS_TX);
-    // 与测试工程 loop 前一致：先关背景音乐，避免误码后卡「唱歌」
-    delay(100);
-    lu6288MusicOff();
-#  if TTS_DEBUG_MODULE_RX
-    ttsDrainModuleRx();
+    Serial.printf("[TTS] I2S out BCLK=%d LRC=%d DIN=%d (edge-tts MP3 via /internal/tts)\n",
+                  PIN_I2S_BCLK, PIN_I2S_LRC, PIN_I2S_DIN);
+}
+
+// 解码并播放内存中的 MP3（阻塞直到放完）。
+static void playMp3Buffer(const uint8_t* buf, size_t len) {
+    AudioFileSourcePROGMEM src(buf, len);
+    AudioOutputI2S out;
+    out.SetPinout(PIN_I2S_BCLK, PIN_I2S_LRC, PIN_I2S_DIN);
+    out.SetGain(0.5f);                 // 音量 0..1；偏大会削顶破音，破音就再降(0.3)
+
+    AudioGeneratorMP3 mp3;
+    if (!mp3.begin(&src, &out)) {
+        Serial.println("[TTS] mp3 begin fail");
+        return;
+    }
+    while (mp3.isRunning()) {
+        if (!mp3.loop()) break;
+        yield();
+    }
+    mp3.stop();
+}
+
+void ttsPlayBootClip() {
+#  if HAS_BOOT_SOUND
+    Serial.printf("[TTS] play boot clip (offline, %u bytes)\n", (unsigned)BOOT_SOUND_MP3_LEN);
+    playMp3Buffer(BOOT_SOUND_MP3, BOOT_SOUND_MP3_LEN);
+#  else
+    Serial.println("[TTS] boot clip not embedded — run `npm run gen:boot-sound` in backend");
 #  endif
 }
 
 void ttsSpeak(const char* text) {
-#  if TTS_DEBUG_MODULE_RX
-    ttsDrainModuleRx();
-#  endif
-    uint8_t payload[220];
-    size_t payLen = ttsUtf8ToGbk(text, payload, sizeof(payload));
-    if (payLen == 0) {
-        Serial.println("[TTS] speak skipped: empty after UTF-8→GBK (check mapping table / input)");
+    if (!text || !text[0]) return;
+    uint8_t* buf = nullptr;
+    size_t   len = 0;
+    if (!greenaiFetchTts(text, &buf, &len)) {
+        Serial.printf("[TTS] fetch fail (未联网/未配置/服务端错误): \"%s\"\n", text);
         return;
     }
-    if (payLen > 200) payLen = 200;
-
-    lu6288SpeakGbkPayload(payload, payLen);
-    Serial.printf("[TTS] LU6288 speak GBK %u B (UTF-8 src len=%u)\n", (unsigned)payLen, (unsigned)strlen(text));
-#  if TTS_DEBUG_MODULE_RX
-    ttsLogModuleRx(100);
-#  endif
+    Serial.printf("[TTS] play %u bytes: \"%s\"\n", (unsigned)len, text);
+    playMp3Buffer(buf, len);
+    free(buf);
 }
 
-// ---- 上电后仅播报一次环境读数：SHT 有效且温度连续若干帧变化很小视为「稳定」；
-//     超时则只要有温湿度也播报一次，避免永远等不到稳定。----
-static bool          s_envAnnounced     = false;
+// ---- 上电后仅播报一次环境读数（逻辑与原实现一致）----
+static bool          s_envAnnounced   = false;
 static float         s_lastStableT    = NAN;
 static uint8_t       s_tempStableCnt  = 0;
 static unsigned long s_envWaitStartMs = 0;
@@ -197,6 +179,7 @@ void ttsSpeakWatering() {
 
 void ttsInit() {}
 void ttsSpeak(const char*) {}
+void ttsPlayBootClip() {}
 void ttsLoop(const SensorData&) {}
 void ttsSpeakWatering() {}
 void ttsInvalidateConfig() {}

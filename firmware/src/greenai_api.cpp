@@ -2,6 +2,7 @@
 
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <cstdlib>
 #include <cstring>
 #include <time.h>
 
@@ -250,6 +251,92 @@ void greenaiMarkBootOnce() {
   if (g_bootEnqueued) return;
   g_bootEnqueued = true;
   greenaiLog("info", "device_boot");
+}
+
+// ============================================================
+//  POST /internal/tts — 取回 edge-tts 合成的 MP3（HMAC 同 ingest）
+// ============================================================
+bool greenaiFetchTts(const char* text, uint8_t** outBuf, size_t* outLen) {
+  if (outBuf) *outBuf = nullptr;
+  if (outLen) *outLen = 0;
+  if (!text || !text[0] || !outBuf || !outLen) return false;
+  if (!greenaiIsConfigured() || !WiFi.isConnected() || !ensureNetworkTime()) return false;
+
+  const String hid = hardwareId();
+  String body = String("{\"hardwareId\":\"") + jsonEscape(hid.c_str()) +
+                String("\",\"text\":\"") + jsonEscape(text) + String("\"}");
+
+  time_t tsSec = time(nullptr);
+  String tsStr = String(static_cast<long>(tsSec));
+  char bodyHashHex[65];
+  sha256HexUtf8(body, bodyHashHex);
+  String msg = tsStr + "\n" + String(bodyHashHex);
+  char sigHex[65];
+  hmacSha256Hex(msg, g_sensorKey, sigHex);
+
+  HTTPClient http;
+  http.setTimeout(20000);
+  const String url = g_apiBase + "/internal/tts";
+  if (!http.begin(url)) return false;
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-timestamp", tsStr);
+  http.addHeader("x-signature", String(sigHex));
+
+  const int code = http.POST(body);
+  if (code != 200) {
+    Serial.printf("[TTS] /internal/tts http=%d\n", code);
+    http.end();
+    return false;
+  }
+
+  const int    contentLen = http.getSize();      // -1 表示分块/未知
+  const size_t MAX_BYTES   = 256u * 1024u;        // 防 OOM 上限
+  if (contentLen > 0 && (size_t)contentLen > MAX_BYTES) {
+    Serial.printf("[TTS] mp3 too large: %d\n", contentLen);
+    http.end();
+    return false;
+  }
+
+  size_t   cap = (contentLen > 0) ? (size_t)contentLen : 32768u;
+  uint8_t* buf = (uint8_t*)malloc(cap);
+  if (!buf) { http.end(); return false; }
+
+  WiFiClient*   stream = http.getStreamPtr();
+  size_t        got    = 0;
+  unsigned long lastMs = millis();
+  while (http.connected() && (contentLen < 0 || got < (size_t)contentLen)) {
+    size_t avail = stream->available();
+    if (avail) {
+      if (got + avail > cap) {
+        if (contentLen > 0) {
+          avail = cap - got;
+        } else {
+          size_t ncap = cap * 2;
+          if (ncap > MAX_BYTES) ncap = MAX_BYTES;
+          uint8_t* nb = (uint8_t*)realloc(buf, ncap);
+          if (!nb) { free(buf); http.end(); return false; }
+          buf = nb;
+          cap = ncap;
+          if (got + avail > cap) avail = cap - got;
+        }
+      }
+      if (avail) {
+        int r = stream->readBytes(buf + got, avail);
+        if (r > 0) got += (size_t)r;
+      }
+      lastMs = millis();
+    } else {
+      if (millis() - lastMs > 5000) break;        // 5s 无数据视为结束
+      delay(2);
+    }
+    if (got >= MAX_BYTES) break;
+  }
+  http.end();
+
+  if (got == 0) { free(buf); return false; }
+  *outBuf = buf;
+  *outLen = got;
+  return true;
 }
 
 void greenaiFlushLogs(unsigned long nowMillis) {
