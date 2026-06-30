@@ -109,7 +109,7 @@ jobs:
         run: node --test scripts/parity-docs-anchor.test.mjs
 
   miniprogram-json:
-    name: Miniprogram JSON
+    name: Uniapp JSON
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -120,19 +120,9 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const paths = [
-            'miniprogram/app.json',
-            'miniprogram/pages/index/index.json',
-            'miniprogram/pages/plants/plants.json',
-            'miniprogram/pages/settings/settings.json',
-            'miniprogram/pages/plant-edit/plant-edit.json',
-            'miniprogram/pages/plant-plan/plant-plan.json',
-            'miniprogram/pages/plant-sensors/plant-sensors.json',
-            'miniprogram/pages/device-provision/device-provision.json',
-            'miniprogram/pages/discover/discover.json',
-            'miniprogram/pages/discover-detail/discover-detail.json',
-            'miniprogram/pages/diagnose/diagnose.json',
-            'miniprogram/project.config.json',
-            'miniprogram/sitemap.json',
+            'uniapp/src/pages.json',
+            'uniapp/src/manifest.json',
+            'uniapp/package.json',
           ];
           for (const p of paths) {
             JSON.parse(fs.readFileSync(p, 'utf8'));

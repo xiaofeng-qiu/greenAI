@@ -10,8 +10,9 @@ onHide(() => {});
 
 <style>
 page {
-  background-color: #ffffff;
-  color: #212121;
+  background-color: #e8ecf0;
+  color: #1a3d2b;
   font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  height: 100%;
 }
 </style>
