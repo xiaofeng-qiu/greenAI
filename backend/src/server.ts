@@ -15,6 +15,7 @@ import sensorIngestRoutes from "./routes/sensorIngest.js";
 import soilEstimateRoutes from "./routes/soilEstimate.js";
 import subscribeRoutes from "./routes/subscribe.js";
 import tasksRoutes from "./routes/tasks.js";
+import ttsRoutes from "./routes/tts.js";
 import usersRoutes from "./routes/users.js";
 import weatherRoutes from "./routes/weather.js";
 
@@ -47,6 +48,7 @@ await app.register(tasksRoutes);
 await app.register(subscribeRoutes);
 await app.register(internalJobsRoutes);
 await app.register(sensorIngestRoutes);
+await app.register(ttsRoutes);
 
 await app.listen({ port: config.PORT, host: "0.0.0.0" });
 
