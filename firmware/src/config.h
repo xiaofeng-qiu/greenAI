@@ -4,11 +4,29 @@
 //  Stage Toggles — set 1 to enable, 0 to disable
 // ============================================================
 #define STAGE_SERIAL       1
-#define STAGE_OLED         1
+#define STAGE_OLED         1   // 显示总开关（沿用此名）：1=启用所选屏，0=不驱动任何屏
 #define STAGE_TTS          1
 #define STAGE_PH           1
 #define STAGE_WIFI_PROV    1   // SoftAP 配网
 #define STAGE_WIFI_UPLOAD  1
+
+// ============================================================
+//  硬件变体选择 flag（默认见下；可在 platformio.ini 的 build_flags 覆盖）
+// ============================================================
+// 显示驱动
+#define DISP_OLED          0   // SSD1306 128x64 单色 OLED (U8g2/I²C)
+#define DISP_ILI9341       1   // ILI9341 240x320 彩色 (TFT_eSPI)，横屏 320x240
+#define DISP_ST7735        2   // ST7735 1.44" 128x128 彩色 (TFT_eSPI)
+#ifndef DISPLAY_DRIVER
+#  define DISPLAY_DRIVER   DISP_ILI9341
+#endif
+
+// 语音引擎
+#define TTS_EDGE           0   // 服务端 edge-tts 合成 MP3 → ESP8266Audio 解码 → I2S(MAX98357A)
+#define TTS_LU6288         1   // 老方案：LU6288 UART 本地合成（GBK）
+#ifndef TTS_ENGINE
+#  define TTS_ENGINE       TTS_EDGE
+#endif
 
 /**
  * 量产配网：将 GREENAI_PROVISION_EMBED_API_BASE 置 1，并设置 GREENAI_API_BASE_DEFAULT
@@ -55,12 +73,20 @@
 #define PIN_SOIL_MOISTURE  1
 #define PIN_PH             2
 
-// I2S 音频输出 (MAX98357A)：服务端 edge-tts 合成 MP3 → ESP8266Audio 解码 → I2S
-//   MAX98357A：BCLK→17  LRC(LRCLK)→18  DIN→16  VIN→5V/3V3  GND→GND
-//              SD→3V3(常开)  GAIN→悬空(9dB)；喇叭 4-8Ω 3W（⊖ 勿接地）
+// 语音引脚（按 TTS_ENGINE 二选一使用；GPIO 复用，编译期只编一种引擎）
+//   TTS_EDGE  → I2S 输出 (MAX98357A)：BCLK→17  LRC→18  DIN→16
+//               VIN→5V/3V3  GND→GND  SD→3V3(常开)  GAIN→悬空(9dB)；喇叭 4-8Ω 3W（⊖ 勿接地）
+//   TTS_LU6288→ UART1：模块 TX→ESP RX(GPIO18)，模块 RX←ESP TX(GPIO17)
 #define PIN_I2S_BCLK       17
 #define PIN_I2S_LRC        18
 #define PIN_I2S_DIN        16
+#define PIN_TTS_RX         18   // LU6288 UART RX (模块 TX → 此脚)
+#define PIN_TTS_TX         17   // LU6288 UART TX (此脚 → 模块 RX)
+
+/** LU6288 调试：每次 ttsSpeak 后读模块 TX→ESP RX 并打印 hex；调通后可改 0。 */
+#ifndef TTS_DEBUG_MODULE_RX
+#  define TTS_DEBUG_MODULE_RX 1
+#endif
 
 // 板载 LED
 #define PIN_LED_BUILTIN    48

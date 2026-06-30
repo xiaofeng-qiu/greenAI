@@ -1,24 +1,43 @@
 # 植物管家 (greenAI) — 固件
 
-针对 **ESP32-S3-N16R8** 的面包板模块化固件：传感器采集 → TFT(ILI9341) 中文显示 → 语音播报（服务端 edge-tts + I2S）→ WiFi 配网 → 后端上报。
+针对 **ESP32-S3-N16R8** 的面包板模块化固件：传感器采集 → 中文显示 → 语音播报 → WiFi 配网 → 后端上报。
+
+**显示屏与语音引擎可按编译期 flag 切换**（不同实现放在不同文件，公共部分共享）：
+
+| 维度 | flag (`config.h`) | 取值 |
+|------|------|------|
+| 显示 | `DISPLAY_DRIVER` | `DISP_OLED`(SSD1306 128×64) / `DISP_ILI9341`(240×320 彩) / `DISP_ST7735`(128×128 彩) |
+| 语音 | `TTS_ENGINE` | `TTS_EDGE`(服务端 edge-tts→I2S) / `TTS_LU6288`(本地 UART 合成) |
+
+`platformio.ini` 预置了 3 个组合 env：`ili9341-edge`（默认）、`st7735-edge`、`oled-lu6288`。**切硬件 = 选 env**，无需改代码。
 
 ## 目录结构
 
 ```
 firmware/
-├── platformio.ini        # 板型 / 库 / 编译选项
+├── platformio.ini        # 多 env（ili9341-edge / st7735-edge / oled-lu6288）+ 共享 [common]
 ├── src/
-│   ├── config.h          # Stage 开关、引脚、常量
-│   ├── main.cpp          # 主循环 + BOOT 长按复位
+│   ├── config.h          # Stage 开关、DISPLAY_DRIVER/TTS_ENGINE flag、引脚、常量
+│   ├── main.cpp          # 主循环 + BOOT 长按复位 + WS2812 状态灯
 │   ├── sensors.{h,cpp}   # SHT30 / BH1750 / 土壤 / pH 汇总采集
 │   ├── ph_sensor.{h,cpp} # pH DFRobot 官方算法（10 采样排序去极值取中 6 点）
-│   ├── display.{h,cpp}   # TFT(ILI9341) 中文界面 + 眨眼/笑脸动画 + WiFi 状态图标
+│   ├── display.h         # 显示统一接口（所有驱动实现它）
+│   ├── display_tft_common.h    # TFT 共享：配色 / 文字 / WiFi 角标（ILI9341+ST7735 共用）
+│   ├── display_oled.cpp        # SSD1306 单色实现（含显示关闭时空实现）
+│   ├── display_tft_ili9341.cpp # ILI9341 320×240 横屏实现
+│   ├── display_tft_st7735.cpp  # ST7735 128×128 实现
 │   ├── network.{h,cpp}   # WiFi 配网 (SoftAP + Captive Portal) + 上报调度
 │   ├── greenai_api.{h,cpp} # greenAI：HMAC + /internal/sensors/ingest、/logs、/devices/config、/tts
-│   ├── tts.{h,cpp}       # 语音播报：拉服务端 edge-tts MP3 → ESP8266Audio 解码 → I2S(MAX98357A)
-│   └── boot_sound.h      # 开机离线提示音（内置 MP3，由 backend 的 gen:boot-sound 生成）
+│   ├── tts.h             # 语音统一接口
+│   ├── tts_common.cpp    # 引擎无关：环境播报状态机 / 浇水文案 / 关闭时空实现
+│   ├── tts_edge.cpp      # edge-tts 引擎：拉 MP3 → ESP8266Audio 解码 → I2S(MAX98357A)
+│   ├── tts_lu6288.cpp    # LU6288 引擎：UART 本地合成（GBK）
+│   ├── tts_utf8_gbk.{h,cpp} # UTF-8→GBK（LU6288 用）
+│   └── boot_sound.h      # 开机离线提示音（内置 MP3，由 backend 的 gen:boot-sound 生成；edge 引擎用）
 └── README.md
 ```
+
+> 守卫约定：每个 `display_*.cpp` / `tts_*.cpp` 用 `#if DISPLAY_DRIVER==... / TTS_ENGINE==...` 包裹，**同一次编译只编入一套**实现，公共符号只定义一次，不冲突。
 
 ## 快速开始
 
@@ -28,32 +47,52 @@ VS Code → 扩展 → 搜索 **PlatformIO IDE** → 安装。
 
 ### 2. 接线
 
-对照 [FAST-DEMO-breadboard-layout.svg](../FAST-DEMO-breadboard-layout.svg)。引脚定义见 [src/config.h](src/config.h)：
+引脚定义见 [src/config.h](src/config.h)。
+
+**公共（所有变体）**
 
 | 信号 | ESP32-S3 引脚 | 模块 |
 |------|--------------|------|
-| I²C0 SDA / SCL | **GPIO5 / GPIO4** | SHT30（⚠ 旧 OLED 移除后失去上拉，需自补 4.7kΩ 到 3V3） |
-| I²C1 SDA / SCL | **GPIO6 / GPIO7** | BH1750（独占总线避免地址冲突） |
-| TFT SCK / SDI(MOSI) | **GPIO12 / GPIO11** | ILI9341 240×320 SPI |
-| TFT CS / DC / RESET | **GPIO10 / GPIO13 / GPIO14** | 片选 / 命令数据 / 复位 |
-| TFT LED(背光) | **GPIO21** | HIGH 点亮；不调光可直接接 3V3 |
+| I²C0 SDA / SCL | **GPIO5 / GPIO4** | SHT30（温湿度）|
+| I²C1 SDA / SCL | **GPIO6 / GPIO7** | BH1750（光照，独占总线）|
 | 土壤湿度 AO | **GPIO1** | ADC1, 电容式模块输出 |
 | pH 模块 Po | **GPIO2** | ADC1, ⚠ 必须分压 5V→3.3V |
-| I2S BCLK / LRC / DIN | **GPIO17 / GPIO18 / GPIO16** | MAX98357A 数字功放（原 LU6288 已弃用） |
 | BOOT 按钮 | **GPIO0** | 长按 5 秒清凭证 + 重启 |
-| 内置 RGB 灯 | **GPIO48** | WS2812 状态灯（绿心跳/黄慢闪/红快闪） |
+| 内置 RGB 灯 | **GPIO48** | WS2812 状态灯（绿心跳/黄慢闪/红快闪）|
 
-> TFT 屏 **VCC→3V3、GND→GND**；SDO(MISO) 与触摸 `T_*`（XPT2046）暂不接、不驱动。彩色 UI 用 `TFT_eSPI` 绘图，中文用 `U8g2_for_TFT_eSPI`（复用 wqy GB2312 字体）。
->
-> **MAX98357A（I2S 功放）**：`BCLK→17  LRC→18  DIN→16`；`VIN→5V`（4-8Ω 3W 喇叭大音量必须 5V，否则削顶/欠压重启）；`GND` 共地；`SD→3V3`（常开）；`GAIN` 悬空(9dB)；喇叭 `⊕/⊖` 接喇叭，**⊖ 绝不接地**（BTL 差分）。⚠ 功放/喇叭线远离 **GPIO0(BOOT)**，避免干扰误触发。
+**显示（按 `DISPLAY_DRIVER` 三选一）**
 
-### 3. 编译 & 上传
+| 屏 | 接线 | 备注 |
+|----|------|------|
+| `DISP_OLED` SSD1306 | SDA→**GPIO5**、SCL→**GPIO4**（与 SHT30 共用 I²C0）| OLED 模块自带 4.7kΩ 上拉，给 SHT30 共用 |
+| `DISP_ILI9341` 240×320 | SCK→**12** SDI(MOSI)→**11** CS→**10** DC→**13** RESET→**14** LED→**21** | 横屏 320×240；SDO/触摸不接 |
+| `DISP_ST7735` 128×128 | SCL→**12** SDA(MOSI)→**11** CS→**10** DC→**13** RES→**14** BLK→**21** | 1.44"；无 MISO/触摸 |
+
+> 彩屏 **VCC→3V3、GND→GND**；用 `TFT_eSPI` 绘图 + `U8g2_for_TFT_eSPI` 中文。
+> ⚠ **用 TFT（非 OLED）时，SHT30 的 I²C0(GPIO5/4) 失去 OLED 自带上拉，需自补 4.7kΩ 到 3V3**，否则读不到温湿度。
+
+**语音（按 `TTS_ENGINE` 二选一，GPIO 复用）**
+
+| 引擎 | 接线 | 备注 |
+|------|------|------|
+| `TTS_EDGE` MAX98357A | BCLK→**17** LRC→**18** DIN→**16** | VIN→**5V**（4-8Ω 3W 喇叭大音量必须 5V）；SD→3V3；GAIN 悬空(9dB)；喇叭 ⊖ **绝不接地**（BTL）|
+| `TTS_LU6288` UART | 模块 TX→ESP **GPIO18**(RX)、模块 RX←ESP **GPIO17**(TX) | 本地合成，离线可用 |
+
+> ⚠ 功放/喇叭线远离 **GPIO0(BOOT)**，避免干扰误触发清凭证（已加「松开才武装」防护）。
+
+### 3. 编译 & 上传（选对应 env）
 
 ```bash
-~/.platformio/penv/Scripts/pio.exe run -t upload -t monitor
+# 默认 env = ili9341-edge（不带 -e 即编它）
+pio run -e ili9341-edge -t upload -t monitor   # ILI9341 彩屏 + 服务端 edge-tts
+pio run -e st7735-edge  -t upload -t monitor   # ST7735 128×128 彩屏 + edge-tts
+pio run -e oled-lu6288  -t upload -t monitor   # SSD1306 OLED + 老 LU6288 语音
 ```
 
-或 VS Code 状态栏：**Build → Upload → Serial Monitor**。
+> Windows 直接路径示例：`~/.platformio/penv/Scripts/pio.exe run -e st7735-edge -t upload -t monitor`。
+> 或 VS Code/PlatformIO 侧栏选择对应 **env** 后 Build/Upload/Monitor。
+
+不同 env 的 `lib_deps`/`build_flags` 各自独立（OLED env 只拉 U8g2；TFT env 拉 `TFT_eSPI`+`U8g2_for_TFT_eSPI`+`ESP8266Audio`），由 `-DDISPLAY_DRIVER=` / `-DTTS_ENGINE=` 选择实现；`lib_ldf_mode = chain+` 保证按 flag 裁剪依赖。要自定义组合，复制一个 `[env:...]` 改 flag 即可。
 
 ### 4. 配网
 
@@ -76,14 +115,14 @@ VS Code → 扩展 → 搜索 **PlatformIO IDE** → 安装。
 
 ```c
 #define STAGE_SERIAL       1   // 串口 CSV 输出
-#define STAGE_OLED         1   // TFT(ILI9341) 中文显示（沿用此开关名）
-#define STAGE_TTS          1   // 语音播报（服务端 edge-tts → I2S）
+#define STAGE_OLED         1   // 显示总开关（沿用此名）：1=启用所选屏，0=不驱动任何屏
+#define STAGE_TTS          1   // 语音播报总开关
 #define STAGE_PH           1   // pH 读取
 #define STAGE_WIFI_PROV    1   // SoftAP 配网
 #define STAGE_WIFI_UPLOAD  1   // 上报后端
 ```
 
-建议**逐个打开**验证，不要一次全开。
+具体「用哪块屏 / 哪个语音引擎」由 `DISPLAY_DRIVER` / `TTS_ENGINE` 决定（默认在 `config.h`，由各 env 的 `build_flags` 覆盖）；`STAGE_OLED=0` / `STAGE_TTS=0` 则整体关闭显示/语音（编入空实现）。建议**逐个打开**验证。
 
 ## 重要提醒
 
@@ -106,11 +145,16 @@ pH 算法在 [src/ph_sensor.cpp](src/ph_sensor.cpp)：10 次 `analogRead` → �
 
 ### 中文字体
 
-彩色文字用 `U8g2_for_TFT_eSPI` 渲染 U8g2 字体：数据面板 `u8g2_font_wqy16_t_gb2312`（16px），小字 `u8g2_font_wqy12_t_gb2312a`。无需 `enableUTF8Print()`，直接 `u8f.drawUTF8(x, y_baseline, "中文")`。
+- 彩屏（TFT）：`U8g2_for_TFT_eSPI` 渲染 U8g2 字体——`u8g2_font_wqy16_t_gb2312`（16px）/ `u8g2_font_wqy12_t_gb2312a`（12px），`u8f.drawUTF8(x, y_baseline, "中文")`。
+- OLED：`U8g2`（`-DU8G2_USE_ALL_FONTS`）+ `enableUTF8Print()`，`u8g2.drawUTF8(...)`。
 
-### 显示驱动（ILI9341 彩色）
+### 显示驱动（三选一）
 
-屏幕走 4 线 SPI，使用 **TFT_eSPI** 做彩色绘图（圆/椭圆/三角/进度条/动画），文字叠加用 **U8g2_for_TFT_eSPI** 取得中文字形与颜色。SPI 引脚、驱动型号在 `platformio.ini` 的 `build_flags` 里配置（`-DILI9341_DRIVER`、`-DTFT_MOSI=11`、`-DTFT_SCLK=12`、`-DTFT_CS=10`、`-DTFT_DC=13`、`-DTFT_RST=14` 等）；背光 `PIN_TFT_BL`(GPIO21) 在 `displayInit()` 拉高。数据面板用「模式判断 + 实底字体覆盖」避免每秒全屏刷新闪烁。
+- **`DISP_OLED`**（`display_oled.cpp`）：SSD1306 128×64，U8g2 HW I²C（与 SHT30 共用 Wire），单色。
+- **`DISP_ILI9341`**（`display_tft_ili9341.cpp`）：240×320 面板 `setRotation(3)` 横屏 320×240；开机眨眼用离屏 sprite 双缓冲防闪。
+- **`DISP_ST7735`**（`display_tft_st7735.cpp`）：1.44" 128×128，`ST7735_GREENTAB128` + `setRotation(3)`（rot 2/3 偏移为 0，避免 1/4 雪花）。
+
+两块彩屏共享 `display_tft_common.h`（配色 / `textT/textO/textCenter` / WiFi 角标 / `DispMode`）。TFT 用 `TFT_eSPI` 绘图 + `U8g2_for_TFT_eSPI` 中文；SPI 引脚/驱动型号在各 env 的 `build_flags` 配置（`-DILI9341_DRIVER` 或 `-DST7735_DRIVER -DST7735_GREENTAB128`、`-DUSE_HSPI_PORT`、`-DTFT_MOSI=11` 等）；背光 `PIN_TFT_BL`(GPIO21) 在 `displayInit()` 拉高。彩屏数据面板用「模式判断 + 实底字体覆盖」避免每秒全屏刷新闪烁。
 
 ### 语音播报（服务端 edge-tts + I2S，已替换 LU6288）
 
@@ -121,10 +165,11 @@ pH 算法在 [src/ph_sensor.cpp](src/ph_sensor.cpp)：10 次 `analogRead` → �
   pip install edge-tts          # 服务器/开发机都要装
   ```
   命令名可用环境变量 `EDGE_TTS_BIN` 覆盖（如 `EDGE_TTS_BIN="python -m edge_tts"`）。
-- **固件**：`tts.cpp` 用 `greenaiFetchTts()` 拉 MP3 进内存，`ESP8266Audio`（`AudioGeneratorMP3` + `AudioOutputI2S`）解码经 I2S 推 MAX98357A。`ttsSpeak()` 为阻塞式（播报偶发，可接受）。
+- **固件**（`tts_edge.cpp`）：`greenaiFetchTts()` 拉 MP3 进内存，`ESP8266Audio`（`AudioGeneratorMP3` + `AudioOutputI2S`）解码经 I2S 推 MAX98357A。`ttsSpeak()` 为阻塞式（播报偶发，可接受）。
   - 库锁定 `earlephilhower/ESP8266Audio@1.9.7`（新版需 Arduino core 3.x 的 `i2s_std.h`，本工程 core 2.0.x 用旧 I2S）。
-  - 音量在 `tts.cpp` 的 `out.SetGain(0.5f)`（破音就降到 0.3）。
-- **触发点**：联网后温度稳定时**环境播报一次**；检测到**浇水**时播报回馈句（文案可由小程序经 `/internal/devices/config` 下发）。
+  - 音量在 `tts_edge.cpp` 的 `out.SetGain(0.5f)`（破音就降到 0.3）。
+- **触发点**（`tts_common.cpp`，引擎无关）：联网后温度稳定时**环境播报一次**；检测到**浇水**时播报回馈句（文案可由小程序经 `/internal/devices/config` 下发）。
+- **老方案 `TTS_LU6288`**（`tts_lu6288.cpp`）：LU6288 模块 UART 本地合成（UTF-8→GBK），离线即可发声，不需要后端/网络；音质一般。选 `oled-lu6288` env 即用此引擎。
 
 ### 开机离线提示音（未配网也能响）
 
@@ -137,10 +182,13 @@ npm run gen:boot-sound -- "植物管家已启动"     # 用 edge-tts 合成并�
 ```
 
 未生成时 `boot_sound.h` 为占位（`HAS_BOOT_SOUND 0`），开机不出声但可正常编译。
+> `TTS_LU6288` 引擎无需此步：`ttsPlayBootClip()` 直接本地合成「植物管家已启动」。
 
 ### 双 I²C 总线
 
-SHT30 与 BH1750 默认地址段会冲突；本工程让 BH1750 独占 `Wire1`，SHT30 用 `Wire`。⚠ 旧 OLED 移除后，`Wire`(GPIO5/4) 失去原 OLED 模块自带的 4.7kΩ 上拉，**需在 SDA/SCL 各补一颗 4.7kΩ 上拉到 3V3**，否则 SHT30 可能读不到。
+SHT30 与 BH1750 默认地址段会冲突；本工程让 BH1750 独占 `Wire1`，SHT30 用 `Wire`(GPIO5/4)。
+- 用 **OLED** 时：OLED 与 SHT30 共用 `Wire`，OLED 模块自带 4.7kΩ 上拉，两者共用，无需额外加。
+- 用 **TFT（ILI9341/ST7735）** 时：`Wire` 上没有 OLED 提供上拉，**需在 SDA/SCL 各补一颗 4.7kΩ 上拉到 3V3**，否则 SHT30 读不到。
 
 ## BOOT 长按复位
 
