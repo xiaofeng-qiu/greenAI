@@ -4,6 +4,8 @@ import { clearToken, getToken, request, setToken } from "../utils/request";
 
 const GUEST_KEY_STORAGE_KEY = "greenai_guest_key";
 const GUEST_LOGGED_OUT_STORAGE_KEY = "greenai_guest_logged_out";
+const AUTH_VERSION_STORAGE_KEY = "greenai_auth_version";
+const AUTH_VERSION = "h5-guest-v1";
 let authInFlight = null;
 
 function clampPercent(value, fallback = 50) {
@@ -108,6 +110,7 @@ export function logoutGuest() {
   clearToken();
   uni.removeStorageSync(GUEST_KEY_STORAGE_KEY);
   uni.setStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY, "1");
+  uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
 }
 
 export async function createGuestUser(forceNew = false) {
@@ -118,11 +121,19 @@ export async function createGuestUser(forceNew = false) {
   }
   uni.setStorageSync(GUEST_KEY_STORAGE_KEY, payload.guestKey);
   uni.removeStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY);
+  uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
   setToken(payload.token);
   return true;
 }
 
 async function ensureAuthOnce() {
+  if (uni.getStorageSync(AUTH_VERSION_STORAGE_KEY) !== AUTH_VERSION) {
+    clearToken();
+    uni.removeStorageSync(GUEST_KEY_STORAGE_KEY);
+    uni.removeStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY);
+    uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
+  }
+
   const token = getToken();
   if (token) {
     try {
