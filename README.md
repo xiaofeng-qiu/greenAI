@@ -19,7 +19,10 @@
 |---|---|---|
 | GET | `/health` | 健康检查 |
 | POST | `/auth/wechat` | 微信 `jscode2session` 登录，返回 JWT |
-| POST | `/auth/guest` | 创建或恢复 H5 匿名访客，返回 JWT 与本机访客密钥 |
+| POST | `/auth/h5/device/peek` | 查询当前浏览器绑定的 H5 用户 |
+| POST | `/auth/h5/device/login` | 使用本机设备密钥一键登录 |
+| POST | `/auth/h5/device/register` | 创建用户并绑定当前浏览器 |
+| POST | `/auth/guest` | 兼容旧版 H5 访客认证 |
 | GET | `/users/me` | 获取/创建当前用户 |
 | PATCH | `/users/me` | 更新时区、经纬度 |
 | GET | `/plants` | 用户植物列表 |

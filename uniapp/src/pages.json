@@ -1,6 +1,14 @@
 {
   "pages": [
     {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "用户登录",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
       "path": "pages/main/main",
       "style": {
         "navigationStyle": "custom",

@@ -140,18 +140,28 @@ function save() {
   const previous = getApiBase();
   setApiBase(next);
   const current = getApiBase();
-  if (previous !== current) clearToken();
+  const changed = previous !== current;
+  if (changed) clearToken();
 
   uni.showToast({ title: "后端地址已切换", icon: "success" });
-  setTimeout(() => uni.navigateBack(), 500);
+  setTimeout(
+    () => changed
+      ? uni.reLaunch({ url: "/pages/auth/login" })
+      : uni.navigateBack(),
+    500
+  );
 }
 
 function restoreDefault() {
   const previous = getApiBase();
   resetApiBase();
   apiBase.value = "";
-  if (previous !== getApiBase()) clearToken();
+  const changed = previous !== getApiBase();
+  if (changed) clearToken();
   uni.showToast({ title: "已恢复默认地址", icon: "success" });
+  if (changed) {
+    setTimeout(() => uni.reLaunch({ url: "/pages/auth/login" }), 500);
+  }
 }
 </script>
 

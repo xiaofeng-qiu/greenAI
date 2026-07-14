@@ -2,10 +2,11 @@ import { reactive } from "vue";
 import { getApiBase } from "../utils/config";
 import { clearToken, getToken, request, setToken } from "../utils/request";
 
-const GUEST_KEY_STORAGE_KEY = "greenai_guest_key";
-const GUEST_LOGGED_OUT_STORAGE_KEY = "greenai_guest_logged_out";
+const DEVICE_KEY_STORAGE_KEY = "greenai_h5_device_key";
+const LEGACY_GUEST_KEY_STORAGE_KEY = "greenai_guest_key";
+const LEGACY_LOGGED_OUT_STORAGE_KEY = "greenai_guest_logged_out";
 const AUTH_VERSION_STORAGE_KEY = "greenai_auth_version";
-const AUTH_VERSION = "h5-guest-v1";
+const AUTH_VERSION = "h5-device-v2";
 let authInFlight = null;
 
 function clampPercent(value, fallback = 50) {
@@ -102,55 +103,78 @@ async function requestRaw(path, method = "GET", data = undefined) {
   });
 }
 
-export function isGuestLoggedOut() {
-  return uni.getStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY) === "1";
-}
-
-export function logoutGuest() {
-  clearToken();
-  uni.removeStorageSync(GUEST_KEY_STORAGE_KEY);
-  uni.setStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY, "1");
-  uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
-}
-
-export async function createGuestUser(forceNew = false) {
-  const savedKey = forceNew ? "" : String(uni.getStorageSync(GUEST_KEY_STORAGE_KEY) || "");
-  const payload = await requestRaw("/auth/guest", "POST", savedKey ? { guestKey: savedKey } : {});
-  if (!payload?.token || !payload?.guestKey) {
-    throw new Error("guest_auth_failed");
+function migrateDeviceStorage() {
+  if (uni.getStorageSync(AUTH_VERSION_STORAGE_KEY) !== AUTH_VERSION) {
+    const currentKey = String(uni.getStorageSync(DEVICE_KEY_STORAGE_KEY) || "");
+    const legacyKey = String(uni.getStorageSync(LEGACY_GUEST_KEY_STORAGE_KEY) || "");
+    if (!currentKey && legacyKey) {
+      uni.setStorageSync(DEVICE_KEY_STORAGE_KEY, legacyKey);
+    } else if (!currentKey) {
+      clearToken();
+    }
+    uni.removeStorageSync(LEGACY_GUEST_KEY_STORAGE_KEY);
+    uni.removeStorageSync(LEGACY_LOGGED_OUT_STORAGE_KEY);
+    uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
   }
-  uni.setStorageSync(GUEST_KEY_STORAGE_KEY, payload.guestKey);
-  uni.removeStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY);
+}
+
+export function getH5DeviceKey() {
+  migrateDeviceStorage();
+  return String(uni.getStorageSync(DEVICE_KEY_STORAGE_KEY) || "");
+}
+
+export function logoutDeviceUser() {
+  clearToken();
+}
+
+export async function peekDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  if (!deviceKey) return null;
+  try {
+    const payload = await requestRaw("/auth/h5/device/peek", "POST", { deviceKey });
+    return payload?.user || null;
+  } catch (error) {
+    if (error?.statusCode === 404) return null;
+    throw error;
+  }
+}
+
+export async function loginDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  if (!deviceKey) throw new Error("device_key_missing");
+  const payload = await requestRaw("/auth/h5/device/login", "POST", { deviceKey });
+  if (!payload?.token) throw new Error("device_login_failed");
+  setToken(payload.token);
+  return payload;
+}
+
+export async function registerDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  const payload = await requestRaw(
+    "/auth/h5/device/register",
+    "POST",
+    deviceKey ? { deviceKey } : {}
+  );
+  if (!payload?.token || !payload?.deviceKey) {
+    throw new Error("device_register_failed");
+  }
+  uni.setStorageSync(DEVICE_KEY_STORAGE_KEY, payload.deviceKey);
   uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
   setToken(payload.token);
-  return true;
+  return payload;
 }
 
 async function ensureAuthOnce() {
-  if (uni.getStorageSync(AUTH_VERSION_STORAGE_KEY) !== AUTH_VERSION) {
-    clearToken();
-    uni.removeStorageSync(GUEST_KEY_STORAGE_KEY);
-    uni.removeStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY);
-    uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
-  }
-
+  migrateDeviceStorage();
   const token = getToken();
-  if (token) {
-    try {
-      await request({ path: "/users/me" });
-      return true;
-    } catch {
-      // Token may be from another database/environment.
-      clearToken();
-    }
-  }
-  if (isGuestLoggedOut()) return false;
+  if (!token) return false;
   try {
-    return await createGuestUser(false);
+    await request({ path: "/users/me" });
+    return true;
   } catch {
-    // ignore
+    clearToken();
+    return false;
   }
-  return false;
 }
 
 export async function ensureAuth() {
@@ -232,9 +256,11 @@ export async function loadDashboardData() {
     } catch {
       plantStore.devices = [];
     }
+    return true;
   } catch (err) {
     plantStore.error = err?.message || "加载失败";
     plantStore.plants = [];
+    return false;
   } finally {
     plantStore.loading = false;
   }

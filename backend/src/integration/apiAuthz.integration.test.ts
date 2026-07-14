@@ -172,25 +172,25 @@ describe.skipIf(!runIntegration)("API authz — plants & tasks", () => {
   });
 });
 
-describe.skipIf(!runIntegration)("API auth — H5 guest", () => {
+describe.skipIf(!runIntegration)("API auth — H5 device-bound user", () => {
   let app: FastifyInstance | undefined;
-  let guestUserId = "";
+  const userIds: string[] = [];
 
   beforeAll(async () => {
     app = await buildApp(authRoutes);
   });
 
   afterAll(async () => {
-    if (guestUserId && app) {
-      await app.prisma.user.deleteMany({ where: { id: guestUserId } });
+    if (userIds.length && app) {
+      await app.prisma.user.deleteMany({ where: { id: { in: userIds } } });
     }
     if (app) await app.close();
   });
 
-  it("creates and restores the same guest without storing its raw key", async () => {
+  it("registers, previews, and logs in the user bound to one browser key", async () => {
     const created = await app!.inject({
       method: "POST",
-      url: "/auth/guest",
+      url: "/auth/h5/device/register",
       headers: { "content-type": "application/json" },
       payload: JSON.stringify({}),
     });
@@ -198,38 +198,58 @@ describe.skipIf(!runIntegration)("API auth — H5 guest", () => {
     const first = created.json() as {
       token: string;
       userId: string;
-      guestKey: string;
+      deviceKey: string;
     };
-    guestUserId = first.userId;
+    userIds.push(first.userId);
     expect(first.token).toBeTruthy();
-    expect(first.guestKey.length).toBeGreaterThanOrEqual(32);
+    expect(first.deviceKey.length).toBeGreaterThanOrEqual(32);
 
-    const restored = await app!.inject({
+    const preview = await app!.inject({
       method: "POST",
-      url: "/auth/guest",
+      url: "/auth/h5/device/peek",
       headers: { "content-type": "application/json" },
-      payload: JSON.stringify({ guestKey: first.guestKey }),
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
     });
-    expect(restored.statusCode).toBe(200);
-    expect(restored.json()).toMatchObject({ userId: first.userId });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json()).toMatchObject({
+      user: { id: first.userId, plantCount: 0 },
+    });
+
+    const loggedIn = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/login",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
+    });
+    expect(loggedIn.statusCode).toBe(200);
+    expect(loggedIn.json()).toMatchObject({ userId: first.userId });
+
+    const duplicate = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/register",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
+    });
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json()).toMatchObject({ error: "device_already_bound" });
 
     const stored = await app!.prisma.user.findUniqueOrThrow({
       where: { id: first.userId },
       select: { openid: true },
     });
     expect(stored.openid).toMatch(/^guest:[a-f0-9]{64}$/);
-    expect(stored.openid).not.toContain(first.guestKey);
+    expect(stored.openid).not.toContain(first.deviceKey);
   });
 
-  it("rejects malformed guest keys", async () => {
+  it("returns 404 for an unbound valid device key", async () => {
     const response = await app!.inject({
       method: "POST",
-      url: "/auth/guest",
+      url: "/auth/h5/device/login",
       headers: { "content-type": "application/json" },
-      payload: JSON.stringify({ guestKey: "too-short" }),
+      payload: JSON.stringify({ deviceKey: "a".repeat(43) }),
     });
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({ error: "invalid_body" });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ error: "device_not_bound" });
   });
 });
 

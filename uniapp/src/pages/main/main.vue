@@ -28,6 +28,8 @@ import { loadDashboardData, plantStore } from "../../common/store.js";
 const tab = ref(0);
 const statusBarH = ref(20);
 const safeBottom = ref(0);
+let mainLoadPromise = null;
+let redirectingToLogin = false;
 
 const tabs = [
   { key: "home", label: "首页", icon: "🏠" },
@@ -45,12 +47,26 @@ onMounted(async () => {
     statusBarH.value = 20;
     safeBottom.value = 0;
   }
-  await loadDashboardData();
+  await loadOrRedirect();
 });
 
 onShow(async () => {
-  await loadDashboardData();
+  await loadOrRedirect();
 });
+
+async function loadOrRedirect() {
+  if (redirectingToLogin) return;
+  if (!mainLoadPromise) {
+    mainLoadPromise = loadDashboardData().finally(() => {
+      mainLoadPromise = null;
+    });
+  }
+  const loaded = await mainLoadPromise;
+  if (!loaded && !redirectingToLogin) {
+    redirectingToLogin = true;
+    uni.reLaunch({ url: "/pages/auth/login" });
+  }
+}
 
 function tabStyle(i) {
   const on = tab.value === i;

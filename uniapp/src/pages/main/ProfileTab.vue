@@ -136,11 +136,9 @@
     </view>
     <view class="px-40 mb-48">
       <view class="card">
-        <view class="cell-btn row" @click="isLoggedOut ? onCreateGuest() : onLogout()">
-          <view class="ico" :class="isLoggedOut ? 'bg-m' : 'bg-r'">{{ isLoggedOut ? "🌱" : "🚪" }}</view>
-          <text class="lbl grow" :class="{ danger: !isLoggedOut }">
-            {{ isLoggedOut ? "创建新访客" : "退出当前访客" }}
-          </text>
+        <view class="cell-btn row" @click="onLogout">
+          <view class="ico bg-r">🚪</view>
+          <text class="lbl grow danger">退出登录</text>
           <text class="chev">›</text>
         </view>
       </view>
@@ -155,13 +153,11 @@ import { getApiBase } from "../../utils/config";
 import { request } from "../../utils/request";
 import {
   bindDeviceToPlant,
-  createGuestUser,
   createDeviceBindingCode,
   ensureAuth,
-  isGuestLoggedOut,
   loadDashboardData,
   loadDevices,
-  logoutGuest,
+  logoutDeviceUser,
   plantStore,
   updateDevice,
   updateUserMe,
@@ -176,7 +172,6 @@ const me = ref(null);
 const weather = ref(null);
 const loading = ref(false);
 const apiAddress = ref("");
-const isLoggedOut = ref(false);
 
 const WEATHER_SOURCE = "Open-Meteo";
 const NOTIFY_KEY = "greenai_profile_notify";
@@ -297,7 +292,7 @@ async function refreshProfileData() {
       weather.value = null;
     }
   } catch {
-    if (isGuestLoggedOut()) me.value = null;
+    me.value = null;
     weather.value = null;
   } finally {
     loading.value = false;
@@ -460,34 +455,17 @@ function clearClientData() {
 
 function onLogout() {
   uni.showModal({
-    title: "退出当前访客？",
-    content: "匿名访客没有密码。退出后将无法恢复当前访客及其植物数据。",
+    title: "退出登录？",
+    content: "本机用户绑定会保留，之后可在统一登录页一键登录。",
     confirmText: "确认退出",
     confirmColor: "#c0392b",
     success: (result) => {
       if (!result.confirm) return;
-      logoutGuest();
-      isLoggedOut.value = true;
+      logoutDeviceUser();
       clearClientData();
-      uni.showToast({ title: "已退出", icon: "none" });
+      uni.reLaunch({ url: "/pages/auth/login" });
     },
   });
-}
-
-async function onCreateGuest() {
-  if (loading.value) return;
-  loading.value = true;
-  try {
-    await createGuestUser(true);
-    isLoggedOut.value = false;
-    uni.showToast({ title: "访客创建成功", icon: "success" });
-  } catch {
-    uni.showToast({ title: "创建失败，请检查后端连接", icon: "none" });
-    return;
-  } finally {
-    loading.value = false;
-  }
-  await refreshProfileData();
 }
 
 function loadLocalToggles() {
@@ -512,7 +490,6 @@ function toggleWeatherAlerts() {
 
 onShow(() => {
   apiAddress.value = getApiBase();
-  isLoggedOut.value = isGuestLoggedOut();
   loadLocalToggles();
   refreshProfileData();
 });
