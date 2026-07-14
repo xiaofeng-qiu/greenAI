@@ -63,6 +63,17 @@
       </view>
     </view>
     <view class="sec px-40">
+      <text class="sec-t">连接设置</text>
+      <view class="card">
+        <view class="cell-btn row" @click="onOpenApiConfig">
+          <view class="ico bg-b">🌐</view>
+          <text class="lbl grow">后端 API 地址</text>
+          <text class="val api-val">{{ apiAddressText }}</text>
+          <text class="chev">›</text>
+        </view>
+      </view>
+    </view>
+    <view class="sec px-40">
       <text class="sec-t">传感器绑定码</text>
       <view class="card">
         <view class="cell-btn">
@@ -138,6 +149,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import { getApiBase } from "../../utils/config";
 import { clearToken, request } from "../../utils/request";
 import {
   bindDeviceToPlant,
@@ -158,6 +170,7 @@ const bindLoading = ref(false);
 const me = ref(null);
 const weather = ref(null);
 const loading = ref(false);
+const apiAddress = ref("");
 
 const WEATHER_SOURCE = "Open-Meteo";
 const NOTIFY_KEY = "greenai_profile_notify";
@@ -208,6 +221,10 @@ const weatherRowText = computed(() => {
   return `${WEATHER_SOURCE} ${t}°C`;
 });
 const timezoneText = computed(() => me.value?.timezone || "Asia/Shanghai");
+const apiAddressText = computed(() => {
+  const address = apiAddress.value || "同源地址";
+  return address.length > 18 ? `${address.slice(0, 18)}…` : address;
+});
 const envText = computed(() => {
   const ac = me.value?.airConditioning ? "空调开" : "空调关";
   const idx = ASPECT_KEYS.indexOf(me.value?.windowAspect || "unknown");
@@ -249,6 +266,10 @@ function onCopyBindCode() {
 
 function onOpenProvision() {
   uni.navigateTo({ url: "/pages/device-provision/device-provision" });
+}
+
+function onOpenApiConfig() {
+  uni.navigateTo({ url: "/pages/settings/api-config" });
 }
 
 async function refreshProfileData() {
@@ -449,6 +470,7 @@ function toggleWeatherAlerts() {
 }
 
 onShow(() => {
+  apiAddress.value = getApiBase();
   loadLocalToggles();
   refreshProfileData();
 });
@@ -690,6 +712,11 @@ onShow(() => {
   font-size: 26rpx;
   color: #9e9ea7;
   margin-right: 8rpx;
+}
+.api-val {
+  max-width: 260rpx;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .chev {
   color: #c4c4c4;

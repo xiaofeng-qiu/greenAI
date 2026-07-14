@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { API_BASE_URL } from "../utils/config";
+import { getApiBase } from "../utils/config";
 import { clearToken, getToken, request, setToken } from "../utils/request";
 
 function clampPercent(value, fallback = 50) {
@@ -71,7 +71,7 @@ export const plantStore = reactive({
 });
 
 async function requestRaw(path, method = "GET", data = undefined) {
-  const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
   const token = getToken();
   return new Promise((resolve, reject) => {
     uni.request({

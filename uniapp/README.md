@@ -21,9 +21,11 @@ npm run dev:h5
 
 ## 配置 API
 
-`src/utils/config.ts` 自动检测：
-- **H5**：取 `window.location.hostname:3000`（无需手动配置）
+`src/utils/config.ts` 提供平台默认值：
+- **H5**：使用当前网页同源地址，开发时由 Vite 代理到本机 `3000` 端口
 - **非 Web 平台**：回退 `http://127.0.0.1:3000`
+
+用户可在「我 → 连接设置 → 后端 API 地址」填写局域网或远程服务地址，并测试连接。地址持久化在本地 storage，切换后会清除旧服务器的 JWT 并自动重新登录。
 
 JWT 通过 `uni.setStorageSync('greenai_token', …)` 持久化（key 见 `config.ts`）。
 
