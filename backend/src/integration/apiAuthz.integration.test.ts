@@ -10,11 +10,14 @@ import {
 } from "@prisma/client";
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import prismaPlugin from "../plugins/prisma.js";
+import authRoutes from "../routes/auth.js";
 import deviceBindingRoutes from "../routes/deviceBinding.js";
+import devSensorSimulatorRoutes from "../routes/devSensorSimulator.js";
 import internalJobsRoutes from "../routes/internalJobs.js";
 import plantsRoutes from "../routes/plants.js";
 import sensorIngestRoutes from "../routes/sensorIngest.js";
 import tasksRoutes from "../routes/tasks.js";
+import usersRoutes from "../routes/users.js";
 import { signUserToken } from "../lib/jwt.js";
 
 function usesDockerComposeDbHostname(databaseUrl: string): boolean {
@@ -50,6 +53,7 @@ if (runIntegration) {
   process.env.WECHAT_SECRET ||= "integration-test-secret";
   process.env.CRON_HMAC_SECRET ||= "integration-test-cron-secret-16";
   process.env.SENSOR_HMAC_SECRET ||= "integration-test-sensor-secret-16";
+  process.env.ENABLE_DEV_SENSOR_SIMULATOR = "1";
   process.env.SUBSCRIBE_TEMPLATE_ID ||= "integration-test-template-id";
 }
 
@@ -168,6 +172,99 @@ describe.skipIf(!runIntegration)("API authz — plants & tasks", () => {
     });
     expect(res.statusCode).toBe(404);
     expect(res.json()).toMatchObject({ error: "not_found" });
+  });
+});
+
+describe.skipIf(!runIntegration)("API auth — H5 device-bound user", () => {
+  let app: FastifyInstance | undefined;
+  const userIds: string[] = [];
+
+  beforeAll(async () => {
+    app = await buildApp(authRoutes, usersRoutes);
+  });
+
+  afterAll(async () => {
+    if (userIds.length && app) {
+      await app.prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    }
+    if (app) await app.close();
+  });
+
+  it("registers, previews, and logs in the user bound to one browser key", async () => {
+    const created = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/register",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({}),
+    });
+    expect(created.statusCode).toBe(200);
+    const first = created.json() as {
+      token: string;
+      userId: string;
+      deviceKey: string;
+    };
+    userIds.push(first.userId);
+    expect(first.token).toBeTruthy();
+    expect(first.deviceKey.length).toBeGreaterThanOrEqual(32);
+
+    const renamed = await app!.inject({
+      method: "PATCH",
+      url: "/users/me",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${first.token}`,
+      },
+      payload: JSON.stringify({ displayName: "阳台花友" }),
+    });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json()).toMatchObject({ displayName: "阳台花友" });
+
+    const preview = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/peek",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
+    });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json()).toMatchObject({
+      user: { id: first.userId, label: "阳台花友", plantCount: 0 },
+    });
+
+    const loggedIn = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/login",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
+    });
+    expect(loggedIn.statusCode).toBe(200);
+    expect(loggedIn.json()).toMatchObject({ userId: first.userId });
+
+    const duplicate = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/register",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: first.deviceKey }),
+    });
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json()).toMatchObject({ error: "device_already_bound" });
+
+    const stored = await app!.prisma.user.findUniqueOrThrow({
+      where: { id: first.userId },
+      select: { openid: true },
+    });
+    expect(stored.openid).toMatch(/^guest:[a-f0-9]{64}$/);
+    expect(stored.openid).not.toContain(first.deviceKey);
+  });
+
+  it("returns 404 for an unbound valid device key", async () => {
+    const response = await app!.inject({
+      method: "POST",
+      url: "/auth/h5/device/login",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ deviceKey: "a".repeat(43) }),
+    });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ error: "device_not_bound" });
   });
 });
 
@@ -380,6 +477,179 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       expect(rows[1]!.meta).toEqual({ fw: "0.9.1" });
     } finally {
       await app!.prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+});
+
+describe.skipIf(!runIntegration)("API development sensor simulator", () => {
+  let app: FastifyInstance | undefined;
+
+  beforeAll(async () => {
+    app = await buildApp(devSensorSimulatorRoutes);
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+  });
+
+  it("creates a plant, binds a simulated device, and writes readings", async () => {
+    const userA = await app!.prisma.user.create({
+      data: { openid: `it-sim-a-${randomUUID()}` },
+    });
+    const userB = await app!.prisma.user.create({
+      data: { openid: `it-sim-b-${randomUUID()}` },
+    });
+    try {
+      const plantResponse = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userA.id}/plants`,
+        payload: {
+          nickname: "Simulated Plant",
+          speciesLabel: "Test",
+        },
+      });
+      expect(plantResponse.statusCode).toBe(200);
+      const plant = plantResponse.json() as { id: string };
+      const storedPlant = await app!.prisma.plant.findUnique({
+        where: { id: plant.id },
+        include: { carePlan: true },
+      });
+      expect(storedPlant).toMatchObject({
+        userId: userA.id,
+        nickname: "Simulated Plant",
+        speciesLabel: "Test",
+        waterPreference: WaterPreference.medium,
+        indoor: true,
+        heating: false,
+        lightLevel: LightLevel.medium,
+        carePlan: { baseIntervalDays: 7, horizonDays: 14 },
+      });
+      const hardwareId = `hw-sim-${randomUUID()}`;
+
+      const users = await app!.inject({
+        method: "GET",
+        url: "/dev/sensor-simulator/users",
+      });
+      expect(users.statusCode).toBe(200);
+      expect(users.json()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: userA.id })])
+      );
+
+      const binding = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userA.id}/devices`,
+        payload: {
+          hardwareId,
+          label: "Integration Simulator",
+          plantId: plant.id,
+        },
+      });
+      expect(binding.statusCode).toBe(200);
+      const device = binding.json() as { id: string; plantId: string };
+      expect(device.plantId).toBe(plant.id);
+
+      const conflictingBinding = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userB.id}/devices`,
+        payload: { hardwareId },
+      });
+      expect(conflictingBinding.statusCode).toBe(409);
+
+      const measuredAt = new Date().toISOString();
+
+      const response = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/devices/${device.id}/readings`,
+        payload: {
+          readings: [
+            {
+              measuredAt,
+              tempC: 39,
+              soilMoisture: 12,
+              phLevel: 4.2,
+              lux: 68_000,
+            },
+          ],
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ inserted: 1, deduped: 0 });
+
+      const reading = await app!.prisma.deviceReading.findFirst({
+        where: { deviceId: device.id },
+      });
+      expect(reading).toMatchObject({
+        tempC: 39,
+        soilMoisture: 12,
+        phLevel: 4.2,
+        lux: 68_000,
+      });
+
+      const scheduled = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/devices/${device.id}/jobs`,
+        payload: {
+          total: 2,
+          intervalSeconds: 1,
+          jitter: false,
+          reading: { tempC: 24, soilMoisture: 55 },
+        },
+      });
+      expect(scheduled.statusCode).toBe(202);
+      const job = scheduled.json() as { id: string };
+
+      let jobStatus = "running";
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const statusResponse = await app!.inject({
+          method: "GET",
+          url: `/dev/sensor-simulator/devices/${device.id}/job`,
+        });
+        const statusBody = statusResponse.json() as {
+          job: { status: string; sentCount: number };
+        };
+        jobStatus = statusBody.job.status;
+        if (statusBody.job.sentCount >= 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      const stopped = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/jobs/${job.id}/stop`,
+      });
+      expect(stopped.statusCode).toBe(200);
+      expect(stopped.json()).toMatchObject({
+        id: job.id,
+        status: "stopped",
+        sentCount: 1,
+      });
+      expect(jobStatus).toBe("running");
+
+      const deletion = await app!.inject({
+        method: "DELETE",
+        url: `/dev/sensor-simulator/users/${userA.id}`,
+      });
+      expect(deletion.statusCode).toBe(200);
+      expect(deletion.json()).toMatchObject({
+        deleted: true,
+        userId: userA.id,
+        plants: 1,
+        devices: 1,
+      });
+      const [deletedUser, deletedPlant, deletedDevice, readingCount] =
+        await Promise.all([
+          app!.prisma.user.findUnique({ where: { id: userA.id } }),
+          app!.prisma.plant.findUnique({ where: { id: plant.id } }),
+          app!.prisma.device.findUnique({ where: { id: device.id } }),
+          app!.prisma.deviceReading.count({ where: { deviceId: device.id } }),
+        ]);
+      expect(deletedUser).toBeNull();
+      expect(deletedPlant).toBeNull();
+      expect(deletedDevice).toBeNull();
+      expect(readingCount).toBe(0);
+    } finally {
+      await app!.prisma.user.deleteMany({
+        where: { id: { in: [userA.id, userB.id] } },
+      });
     }
   });
 });

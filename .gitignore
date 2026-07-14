@@ -3,6 +3,7 @@ dist/
 backend/generated/
 .env
 backend/.env
+backups/
 .worktrees/
 miniprogram/project.private.config.json
 

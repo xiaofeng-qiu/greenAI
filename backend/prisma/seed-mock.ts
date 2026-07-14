@@ -6,6 +6,10 @@ import {
   WaterPreference,
 } from "@prisma/client";
 
+/**
+ * 将演示用户、植物、任务和传感器数据幂等写入 DATABASE_URL 指向的主数据库。
+ * 运行：npm run db:seed:demo
+ */
 const prisma = new PrismaClient();
 
 async function main() {
@@ -240,7 +244,7 @@ async function main() {
     ]);
 
   console.log(
-    `Mock seed ready: users=${userCount}, plants=${plantCount}, tasks=${taskCount}, devices=${deviceCount}, readings=${readingCount}`
+    `Demo seed ready: users=${userCount}, plants=${plantCount}, tasks=${taskCount}, devices=${deviceCount}, readings=${readingCount}`
   );
 }
 

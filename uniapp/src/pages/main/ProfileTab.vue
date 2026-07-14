@@ -3,7 +3,7 @@
     <view class="header">
       <text class="h1">个人中心</text>
       <view class="row user">
-        <view class="avatar">🌿</view>
+        <view class="avatar" @click="onOpenProfileEdit">🌿</view>
         <view class="grow min0">
           <text class="name">{{ profileName }}</text>
           <text class="loc">📍 {{ locationText }}</text>
@@ -59,6 +59,17 @@
           <view class="ico bg-b">🔔</view>
           <text class="lbl grow">天气预警</text>
           <view class="sw" :class="{ on: weatherAlerts }"><view class="knob" /></view>
+        </view>
+      </view>
+    </view>
+    <view class="sec px-40">
+      <text class="sec-t">连接设置</text>
+      <view class="card">
+        <view class="cell-btn row" @click="onOpenApiConfig">
+          <view class="ico bg-b">🌐</view>
+          <text class="lbl grow">后端 API 地址</text>
+          <text class="val api-val">{{ apiAddressText }}</text>
+          <text class="chev">›</text>
         </view>
       </view>
     </view>
@@ -136,19 +147,24 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import { clearToken, request } from "../../utils/request";
+import { getApiBase } from "../../utils/config";
+import { request } from "../../utils/request";
 import {
   bindDeviceToPlant,
   createDeviceBindingCode,
   ensureAuth,
-  loadDashboardData,
   loadDevices,
+  logoutDeviceUser,
   plantStore,
   updateDevice,
   updateUserMe,
 } from "../../common/store.js";
+
+const props = defineProps({
+  active: { type: Boolean, default: false },
+});
 
 const notifications = ref(true);
 const weatherAlerts = ref(true);
@@ -158,6 +174,7 @@ const bindLoading = ref(false);
 const me = ref(null);
 const weather = ref(null);
 const loading = ref(false);
+const apiAddress = ref("");
 
 const WEATHER_SOURCE = "Open-Meteo";
 const NOTIFY_KEY = "greenai_profile_notify";
@@ -177,7 +194,11 @@ const ASPECT_LABELS = ["未知", "北向", "南向", "东向", "西向"];
 const plants = computed(() => plantStore.plants || []);
 const devices = computed(() => plantStore.devices || []);
 const plantCount = computed(() => plants.value.length);
-const profileName = computed(() => (me.value?.id ? "GreenAI 花友" : "植物爱好者"));
+const profileName = computed(() => {
+  const displayName = String(me.value?.displayName || "").trim();
+  if (displayName) return displayName;
+  return me.value?.id ? `用户 ${String(me.value.id).slice(-6).toUpperCase()}` : "植物爱好者";
+});
 const locationText = computed(() => {
   const label = String(me.value?.locationLabel || "").trim();
   if (label) return label;
@@ -208,6 +229,10 @@ const weatherRowText = computed(() => {
   return `${WEATHER_SOURCE} ${t}°C`;
 });
 const timezoneText = computed(() => me.value?.timezone || "Asia/Shanghai");
+const apiAddressText = computed(() => {
+  const address = apiAddress.value || "同源地址";
+  return address.length > 18 ? `${address.slice(0, 18)}…` : address;
+});
 const envText = computed(() => {
   const ac = me.value?.airConditioning ? "空调开" : "空调关";
   const idx = ASPECT_KEYS.indexOf(me.value?.windowAspect || "unknown");
@@ -251,13 +276,16 @@ function onOpenProvision() {
   uni.navigateTo({ url: "/pages/device-provision/device-provision" });
 }
 
+function onOpenApiConfig() {
+  uni.navigateTo({ url: "/pages/settings/api-config" });
+}
+
 async function refreshProfileData() {
   if (loading.value) return;
   loading.value = true;
   try {
     const authed = await ensureAuth();
     if (!authed) throw new Error("auth_failed");
-    await loadDashboardData();
     me.value = await request({ path: "/users/me" });
     await loadDevices();
     if (me.value?.latitude != null && me.value?.longitude != null) {
@@ -270,6 +298,7 @@ async function refreshProfileData() {
       weather.value = null;
     }
   } catch {
+    me.value = null;
     weather.value = null;
   } finally {
     loading.value = false;
@@ -401,6 +430,10 @@ function onRateApp() {
   uni.showToast({ title: "感谢支持", icon: "none" });
 }
 
+function onOpenProfileEdit() {
+  uni.navigateTo({ url: "/pages/profile/edit" });
+}
+
 function onHelpFeedback() {
   const userId = String(me.value?.id || "").trim();
   if (!userId) {
@@ -418,14 +451,31 @@ function onPrivacy() {
   });
 }
 
-function onLogout() {
-  clearToken();
+function clearClientData() {
   me.value = null;
   weather.value = null;
   bindCode.value = "";
   bindExpiresText.value = "";
   plantStore.plants = [];
-  uni.showToast({ title: "已退出登录", icon: "none" });
+  plantStore.todayTasks = [];
+  plantStore.weather = null;
+  plantStore.forecast = null;
+  plantStore.devices = [];
+}
+
+function onLogout() {
+  uni.showModal({
+    title: "退出登录？",
+    content: "本机用户绑定会保留，之后可在统一登录页一键登录。",
+    confirmText: "确认退出",
+    confirmColor: "#c0392b",
+    success: (result) => {
+      if (!result.confirm) return;
+      logoutDeviceUser();
+      clearClientData();
+      uni.reLaunch({ url: "/pages/auth/login" });
+    },
+  });
 }
 
 function loadLocalToggles() {
@@ -448,9 +498,17 @@ function toggleWeatherAlerts() {
   persistToggleStates();
 }
 
-onShow(() => {
+function refreshVisibleProfile() {
+  if (!props.active) return;
+  apiAddress.value = getApiBase();
   loadLocalToggles();
   refreshProfileData();
+}
+
+watch(() => props.active, refreshVisibleProfile, { immediate: true });
+
+onShow(() => {
+  refreshVisibleProfile();
 });
 </script>
 
@@ -690,6 +748,11 @@ onShow(() => {
   font-size: 26rpx;
   color: #9e9ea7;
   margin-right: 8rpx;
+}
+.api-val {
+  max-width: 260rpx;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .chev {
   color: #c4c4c4;

@@ -1,5 +1,6 @@
 <template>
   <view v-if="plant" class="page">
+    <SensorAlertBanner />
     <scroll-view scroll-y class="scroll">
       <view class="mint-block px-40 pt-32 pb-40">
         <view class="row top">
@@ -14,9 +15,38 @@
           </view>
         </view>
         <view class="sensor-card">
-          <SensorRow label="土壤水分" :value="plant.water" :level="waterLevel" icon="💧" icolor="#1e7a4a" />
-          <SensorRow label="光照强度" :value="plant.light" level="good" icon="☀️" icolor="#c47000" />
-          <SensorRow label="营养状况" :value="plant.nutrition" :level="nutritionLevel" icon="⚡" icolor="#6d4fc4" />
+          <view class="sensor-title-row row between">
+            <text class="sensor-title">实时环境</text>
+            <text class="sensor-time">{{ sensorTimeText }}</text>
+          </view>
+          <view class="sensor-grid row">
+            <view class="sensor-metric">
+              <text class="sensor-icon">🌡️</text>
+              <text class="sensor-value">{{ temperatureText }}</text>
+              <text class="sensor-label">温度</text>
+            </view>
+            <view class="sensor-metric">
+              <text class="sensor-icon">💧</text>
+              <text class="sensor-value">{{ humidityText }}</text>
+              <text class="sensor-label">土壤湿度</text>
+            </view>
+            <view class="sensor-metric">
+              <text class="sensor-icon">☀️</text>
+              <text class="sensor-value">{{ lightText }}</text>
+              <text class="sensor-label">光照</text>
+            </view>
+            <view class="sensor-metric">
+              <text class="sensor-icon">🧪</text>
+              <text class="sensor-value">{{ phText }}</text>
+              <text class="sensor-label">土壤 pH</text>
+            </view>
+          </view>
+          <view v-if="sensorAlerts.length" class="sensor-alert-list">
+            <view v-for="item in sensorAlerts" :key="item.id" class="sensor-alert row">
+              <text class="sensor-alert-icon">{{ item.severity === "danger" ? "🚨" : "⚠️" }}</text>
+              <text class="sensor-alert-text">{{ item.message }}</text>
+            </view>
+          </view>
         </view>
       </view>
       <view class="px-32 mt-24">
@@ -87,12 +117,18 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import SensorRow from "../../components/SensorRow.vue";
+import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
+import SensorAlertBanner from "../../components/SensorAlertBanner.vue";
 import { G } from "../../common/constants.js";
+import {
+  evaluateSensorAlerts,
+  notifyNewSensorAlerts,
+} from "../../utils/sensorAlerts.js";
+import { startSensorPolling, stopSensorPolling } from "../../utils/sensorPolling.js";
 import {
   completeTask,
   fetchPlantDetail,
+  fetchPlantSensorSeries,
   findPlant,
   plantStore,
   skipTask,
@@ -103,6 +139,9 @@ const plant = ref(null);
 const plantId = ref("");
 const plantTasks = ref([]);
 const seriesReadings = ref([]);
+const latestReading = ref(null);
+const sensorAlerts = ref([]);
+const detailLoaded = ref(false);
 
 function goEdit() {
   if (!plantId.value) return;
@@ -113,17 +152,37 @@ function goPlan() {
   uni.navigateTo({ url: `/pages/plant-plan/plant-plan?id=${plantId.value}` });
 }
 
-const waterLevel = computed(() => {
-  const w = plant.value?.water ?? 0;
-  if (w < 30) return "danger";
-  if (w < 50) return "warning";
-  return "good";
+const temperatureText = computed(() => {
+  const raw = latestReading.value?.tempC;
+  if (raw == null) return "--";
+  const value = Number(raw);
+  return Number.isFinite(value) ? `${value.toFixed(1)}°C` : "--";
 });
-const nutritionLevel = computed(() => {
-  const n = plant.value?.nutrition ?? 0;
-  if (n < 35) return "danger";
-  if (n < 50) return "warning";
-  return "good";
+const humidityText = computed(() => {
+  const raw = latestReading.value?.soilMoisture;
+  if (raw == null) return "--";
+  const value = Number(raw);
+  return Number.isFinite(value) ? `${Math.round(value)}%` : "--";
+});
+const lightText = computed(() => {
+  const raw = latestReading.value?.lux;
+  if (raw == null) return "--";
+  const value = Number(raw);
+  return Number.isFinite(value) ? `${Math.round(value)} lx` : "--";
+});
+const phText = computed(() => {
+  const raw = latestReading.value?.phLevel;
+  if (raw == null) return "--";
+  const value = Number(raw);
+  return Number.isFinite(value) ? value.toFixed(1) : "--";
+});
+const sensorTimeText = computed(() => {
+  const measuredAt = latestReading.value?.measuredAt;
+  if (!measuredAt) return "暂无传感器数据";
+  const date = new Date(measuredAt);
+  if (Number.isNaN(date.getTime())) return "最近读数";
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 });
 
 const stText = computed(() => {
@@ -214,39 +273,98 @@ async function onSkip(id) {
   }
 }
 
-onLoad(async (q) => {
-  const id = q?.id;
-  plantId.value = id ? String(id) : "";
-  plant.value = id ? findPlant(id) : null;
+function applySensorSeries(series) {
+  const latest = series?.latest || {};
+  latestReading.value = series?.latest || null;
+  const readings = series?.readings || series?.points || [];
+  seriesReadings.value = Array.isArray(readings) ? readings : [];
+  if (!plant.value) return;
+
+  const light =
+    latest?.lux != null ? Math.max(0, Math.min(100, Math.round((latest.lux / 15000) * 100))) : (plant.value.light ?? 60);
+  const water =
+    latest?.soilMoisture != null ? Math.max(0, Math.min(100, Math.round(latest.soilMoisture))) : (plant.value.water ?? 55);
+  const phStatus = series?.phEvaluation?.status;
+  const nutrition =
+    phStatus === "optimal" || phStatus === "ok"
+      ? 82
+      : !phStatus || phStatus === "unknown"
+        ? 60
+        : 45;
+  sensorAlerts.value = evaluateSensorAlerts({
+    plantId: plantId.value,
+    plantName: plant.value.name,
+    latest: series?.latest,
+    phEvaluation: series?.phEvaluation,
+    hasDevices: Boolean(series?.devices?.length),
+  });
+  notifyNewSensorAlerts(sensorAlerts.value);
+  const hasDangerAlert = sensorAlerts.value.some((item) => item.severity === "danger");
+  const status =
+    water < 25 || nutrition < 35 || hasDangerAlert
+      ? "danger"
+      : water < 45 || nutrition < 55 || sensorAlerts.value.length
+        ? "warning"
+        : "good";
+  plant.value = { ...plant.value, water, light, nutrition, status };
+}
+
+async function refreshDetailData() {
+  const id = plantId.value;
   if (!id) return;
   try {
     const detail = await fetchPlantDetail(id);
-    const latest = detail.series?.latest || {};
-    const readings = detail.series?.readings || detail.series?.points || [];
-    seriesReadings.value = Array.isArray(readings) ? readings : [];
     plantTasks.value = Array.isArray(detail.tasks) ? detail.tasks.slice(0, 8) : [];
-    const light =
-      latest?.lux != null ? Math.max(0, Math.min(100, Math.round((latest.lux / 15000) * 100))) : (plant.value?.light ?? 60);
-    const water =
-      latest?.soilMoisture != null ? Math.max(0, Math.min(100, Math.round(latest.soilMoisture))) : (plant.value?.water ?? 55);
-    const nutrition =
-      detail.series?.phEvaluation?.status === "ok" ? 82 : detail.series?.phEvaluation?.status === "unknown" ? 60 : 45;
-    const status = water < 25 || nutrition < 35 ? "danger" : water < 45 || nutrition < 55 ? "warning" : "good";
     plant.value = {
       id: detail.plant.id,
       name: detail.plant.nickname || detail.plant.speciesLabel || "未命名植物",
       emoji: plant.value?.emoji || "🌱",
       location: detail.plant.indoor ? "室内" : "户外",
-      water,
-      light,
-      nutrition,
-      status,
+      water: plant.value?.water ?? 55,
+      light: plant.value?.light ?? 60,
+      nutrition: plant.value?.nutrition ?? 60,
+      status: plant.value?.status || "good",
       lastCare: plant.value?.lastCare || "近期",
     };
+    applySensorSeries(detail.series);
+    detailLoaded.value = true;
   } catch {
     // keep cached plant when request fails
   }
+}
+
+async function refreshDetailSensors() {
+  if (!detailLoaded.value) {
+    await refreshDetailData();
+    return;
+  }
+  const series = await fetchPlantSensorSeries(plantId.value);
+  if (series) applySensorSeries(series);
+}
+
+function detailPollingKey() {
+  return `plant-detail:${plantId.value}`;
+}
+
+function stopDetailPolling() {
+  if (plantId.value) stopSensorPolling(detailPollingKey());
+}
+
+onLoad((q) => {
+  const id = q?.id;
+  plantId.value = id ? String(id) : "";
+  plant.value = id ? findPlant(id) : null;
+  latestReading.value = plant.value?.sensor || null;
 });
+
+onShow(() => {
+  if (plantId.value) {
+    startSensorPolling(detailPollingKey(), refreshDetailSensors);
+  }
+});
+
+onHide(stopDetailPolling);
+onUnload(stopDetailPolling);
 </script>
 
 <style scoped>
@@ -337,9 +455,72 @@ onLoad(async (q) => {
   background: rgba(255, 255, 255, 0.6);
   border-radius: 24rpx;
   padding: 24rpx 32rpx;
+}
+.sensor-title-row {
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+.sensor-title {
+  color: #1a3d2b;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+.sensor-time {
+  color: #7a8d82;
+  font-size: 20rpx;
+}
+.sensor-grid {
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.sensor-metric {
+  flex: 1 1 calc(50% - 8rpx);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 20rpx 8rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.72);
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  align-items: center;
+}
+.sensor-icon {
+  font-size: 34rpx;
+}
+.sensor-value {
+  margin-top: 10rpx;
+  color: #1a3d2b;
+  font-size: 27rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sensor-label {
+  margin-top: 8rpx;
+  color: #66776e;
+  font-size: 21rpx;
+}
+.sensor-alert-list {
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(192, 57, 43, 0.14);
+}
+.sensor-alert {
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-top: 10rpx;
+}
+.sensor-alert:first-child {
+  margin-top: 0;
+}
+.sensor-alert-icon {
+  font-size: 24rpx;
+}
+.sensor-alert-text {
+  flex: 1;
+  color: #a03a2c;
+  font-size: 23rpx;
+  line-height: 1.45;
 }
 .card {
   background: #fff;

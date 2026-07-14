@@ -11,7 +11,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:mock": "tsx prisma/seed-mock.ts",
+    "db:seed:demo": "tsx prisma/seed-mock.ts",
     "gen:boot-sound": "tsx scripts/genBootSound.ts"
   },
   "prisma": {

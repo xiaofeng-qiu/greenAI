@@ -13,6 +13,8 @@ const envSchema = z.object({
   CRON_HMAC_SECRET: z.string().min(16),
   /** 设备端 HMAC 密钥：用于 POST /internal/sensors/ingest 与 POST /internal/sensors/logs；未配置时两接口均返回 503。 */
   SENSOR_HMAC_SECRET: z.string().min(16).optional(),
+  /** 仅本地开发使用：开放独立传感器模拟控制台 API。接口无需用户 JWT，生产环境必须保持为 0。 */
+  ENABLE_DEV_SENSOR_SIMULATOR: z.enum(["0", "1"]).default("0"),
   SUBSCRIBE_TEMPLATE_ID: z.string().min(1),
   PORT: z.coerce.number().default(3000),
   /** Baidu AI 开放平台「植物识别」；两者皆配置时启用 POST /plants/identify */

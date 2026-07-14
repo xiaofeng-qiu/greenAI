@@ -1,4 +1,4 @@
-import { API_BASE_URL, TOKEN_STORAGE_KEY } from "./config";
+import { getApiBase, TOKEN_STORAGE_KEY } from "./config";
 
 type Method = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -27,7 +27,7 @@ export function clearToken() {
 
 export function request<T = unknown>(opts: RequestOptions): Promise<T> {
   const { path, method = "GET", data } = opts;
-  const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
   const token = getToken();
 
   return new Promise((resolve, reject) => {
