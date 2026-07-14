@@ -11,7 +11,6 @@
     "compose:logs": "docker compose logs -f",
     "compose:ps": "docker compose ps",
     "compose:db:up": "docker compose up -d db",
-    "compose:mock:up": "docker compose up -d db_mock",
     "dev:uniapp:h5": "npm run dev:h5 --prefix uniapp",
     "icons:render": "node scripts/render-svg-icons.mjs",
     "ship": "node scripts/ship.mjs"

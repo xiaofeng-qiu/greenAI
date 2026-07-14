@@ -91,26 +91,16 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build
 
 API 默认监听 `http://localhost:3000`。
 
-### Mock 数据库（与生产数据库隔离）
+### 演示数据
 
-本仓库提供独立的 `mock` 数据库容器，和默认数据库在账号、库名、端口、数据卷上完全隔离：
-
-- 生产/默认开发库：`localhost:5432`，`greenai`
-- Mock 库：`localhost:15432`，`greenai_mock`
-
-启动 mock 库：
+本地与生产环境统一使用 `DATABASE_URL` 指向的主数据库，不再维护独立 Mock 数据库。需要联调数据时，可将演示用户、植物、任务、设备和传感器读数幂等写入当前主库：
 
 ```bash
-docker compose up -d db_mock
+cd backend
+npm run db:seed:demo
 ```
 
-连接串（示例）：
-
-```env
-DATABASE_URL_MOCK=postgresql://greenai_mock:greenai_mock@localhost:15432/greenai_mock
-```
-
-如需让后端连接 mock 库，启动前把 `DATABASE_URL` 临时切换为该值即可（或在单独 `.env.mock` 中维护）。
+运行前请确认 `DATABASE_URL` 指向目标数据库；该命令会保留已有数据，并按固定 ID 更新演示数据。
 
 ### 3. 本地开发启动后端
 
