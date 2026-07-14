@@ -136,9 +136,11 @@
     </view>
     <view class="px-40 mb-48">
       <view class="card">
-        <view class="cell-btn row" @click="onLogout">
-          <view class="ico bg-r">🚪</view>
-          <text class="lbl grow danger">退出登录</text>
+        <view class="cell-btn row" @click="isLoggedOut ? onCreateGuest() : onLogout()">
+          <view class="ico" :class="isLoggedOut ? 'bg-m' : 'bg-r'">{{ isLoggedOut ? "🌱" : "🚪" }}</view>
+          <text class="lbl grow" :class="{ danger: !isLoggedOut }">
+            {{ isLoggedOut ? "创建新访客" : "退出当前访客" }}
+          </text>
           <text class="chev">›</text>
         </view>
       </view>
@@ -150,13 +152,16 @@
 import { computed, ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { getApiBase } from "../../utils/config";
-import { clearToken, request } from "../../utils/request";
+import { request } from "../../utils/request";
 import {
   bindDeviceToPlant,
+  createGuestUser,
   createDeviceBindingCode,
   ensureAuth,
+  isGuestLoggedOut,
   loadDashboardData,
   loadDevices,
+  logoutGuest,
   plantStore,
   updateDevice,
   updateUserMe,
@@ -171,6 +176,7 @@ const me = ref(null);
 const weather = ref(null);
 const loading = ref(false);
 const apiAddress = ref("");
+const isLoggedOut = ref(false);
 
 const WEATHER_SOURCE = "Open-Meteo";
 const NOTIFY_KEY = "greenai_profile_notify";
@@ -291,6 +297,7 @@ async function refreshProfileData() {
       weather.value = null;
     }
   } catch {
+    if (isGuestLoggedOut()) me.value = null;
     weather.value = null;
   } finally {
     loading.value = false;
@@ -439,14 +446,48 @@ function onPrivacy() {
   });
 }
 
-function onLogout() {
-  clearToken();
+function clearClientData() {
   me.value = null;
   weather.value = null;
   bindCode.value = "";
   bindExpiresText.value = "";
   plantStore.plants = [];
-  uni.showToast({ title: "已退出登录", icon: "none" });
+  plantStore.todayTasks = [];
+  plantStore.weather = null;
+  plantStore.forecast = null;
+  plantStore.devices = [];
+}
+
+function onLogout() {
+  uni.showModal({
+    title: "退出当前访客？",
+    content: "匿名访客没有密码。退出后将无法恢复当前访客及其植物数据。",
+    confirmText: "确认退出",
+    confirmColor: "#c0392b",
+    success: (result) => {
+      if (!result.confirm) return;
+      logoutGuest();
+      isLoggedOut.value = true;
+      clearClientData();
+      uni.showToast({ title: "已退出", icon: "none" });
+    },
+  });
+}
+
+async function onCreateGuest() {
+  if (loading.value) return;
+  loading.value = true;
+  try {
+    await createGuestUser(true);
+    isLoggedOut.value = false;
+    uni.showToast({ title: "访客创建成功", icon: "success" });
+  } catch {
+    uni.showToast({ title: "创建失败，请检查后端连接", icon: "none" });
+    return;
+  } finally {
+    loading.value = false;
+  }
+  await refreshProfileData();
 }
 
 function loadLocalToggles() {
@@ -471,6 +512,7 @@ function toggleWeatherAlerts() {
 
 onShow(() => {
   apiAddress.value = getApiBase();
+  isLoggedOut.value = isGuestLoggedOut();
   loadLocalToggles();
   refreshProfileData();
 });

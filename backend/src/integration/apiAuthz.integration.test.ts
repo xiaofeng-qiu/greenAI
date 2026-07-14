@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import prismaPlugin from "../plugins/prisma.js";
+import authRoutes from "../routes/auth.js";
 import deviceBindingRoutes from "../routes/deviceBinding.js";
 import internalJobsRoutes from "../routes/internalJobs.js";
 import plantsRoutes from "../routes/plants.js";
@@ -168,6 +169,67 @@ describe.skipIf(!runIntegration)("API authz — plants & tasks", () => {
     });
     expect(res.statusCode).toBe(404);
     expect(res.json()).toMatchObject({ error: "not_found" });
+  });
+});
+
+describe.skipIf(!runIntegration)("API auth — H5 guest", () => {
+  let app: FastifyInstance | undefined;
+  let guestUserId = "";
+
+  beforeAll(async () => {
+    app = await buildApp(authRoutes);
+  });
+
+  afterAll(async () => {
+    if (guestUserId && app) {
+      await app.prisma.user.deleteMany({ where: { id: guestUserId } });
+    }
+    if (app) await app.close();
+  });
+
+  it("creates and restores the same guest without storing its raw key", async () => {
+    const created = await app!.inject({
+      method: "POST",
+      url: "/auth/guest",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({}),
+    });
+    expect(created.statusCode).toBe(200);
+    const first = created.json() as {
+      token: string;
+      userId: string;
+      guestKey: string;
+    };
+    guestUserId = first.userId;
+    expect(first.token).toBeTruthy();
+    expect(first.guestKey.length).toBeGreaterThanOrEqual(32);
+
+    const restored = await app!.inject({
+      method: "POST",
+      url: "/auth/guest",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ guestKey: first.guestKey }),
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toMatchObject({ userId: first.userId });
+
+    const stored = await app!.prisma.user.findUniqueOrThrow({
+      where: { id: first.userId },
+      select: { openid: true },
+    });
+    expect(stored.openid).toMatch(/^guest:[a-f0-9]{64}$/);
+    expect(stored.openid).not.toContain(first.guestKey);
+  });
+
+  it("rejects malformed guest keys", async () => {
+    const response = await app!.inject({
+      method: "POST",
+      url: "/auth/guest",
+      headers: { "content-type": "application/json" },
+      payload: JSON.stringify({ guestKey: "too-short" }),
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ error: "invalid_body" });
   });
 });
 

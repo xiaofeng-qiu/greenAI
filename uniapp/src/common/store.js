@@ -2,6 +2,10 @@ import { reactive } from "vue";
 import { getApiBase } from "../utils/config";
 import { clearToken, getToken, request, setToken } from "../utils/request";
 
+const GUEST_KEY_STORAGE_KEY = "greenai_guest_key";
+const GUEST_LOGGED_OUT_STORAGE_KEY = "greenai_guest_logged_out";
+let authInFlight = null;
+
 function clampPercent(value, fallback = 50) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
@@ -96,7 +100,29 @@ async function requestRaw(path, method = "GET", data = undefined) {
   });
 }
 
-export async function ensureAuth() {
+export function isGuestLoggedOut() {
+  return uni.getStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY) === "1";
+}
+
+export function logoutGuest() {
+  clearToken();
+  uni.removeStorageSync(GUEST_KEY_STORAGE_KEY);
+  uni.setStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY, "1");
+}
+
+export async function createGuestUser(forceNew = false) {
+  const savedKey = forceNew ? "" : String(uni.getStorageSync(GUEST_KEY_STORAGE_KEY) || "");
+  const payload = await requestRaw("/auth/guest", "POST", savedKey ? { guestKey: savedKey } : {});
+  if (!payload?.token || !payload?.guestKey) {
+    throw new Error("guest_auth_failed");
+  }
+  uni.setStorageSync(GUEST_KEY_STORAGE_KEY, payload.guestKey);
+  uni.removeStorageSync(GUEST_LOGGED_OUT_STORAGE_KEY);
+  setToken(payload.token);
+  return true;
+}
+
+async function ensureAuthOnce() {
   const token = getToken();
   if (token) {
     try {
@@ -107,16 +133,23 @@ export async function ensureAuth() {
       clearToken();
     }
   }
+  if (isGuestLoggedOut()) return false;
   try {
-    const payload = await requestRaw("/auth/dev", "POST", {});
-    if (payload && payload.token) {
-      setToken(payload.token);
-      return true;
-    }
+    return await createGuestUser(false);
   } catch {
     // ignore
   }
   return false;
+}
+
+export async function ensureAuth() {
+  if (authInFlight) return authInFlight;
+  authInFlight = ensureAuthOnce();
+  try {
+    return await authInFlight;
+  } finally {
+    authInFlight = null;
+  }
 }
 
 async function loadSensorSeries(plantId) {

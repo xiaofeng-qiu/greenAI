@@ -19,6 +19,7 @@
 |---|---|---|
 | GET | `/health` | 健康检查 |
 | POST | `/auth/wechat` | 微信 `jscode2session` 登录，返回 JWT |
+| POST | `/auth/guest` | 创建或恢复 H5 匿名访客，返回 JWT 与本机访客密钥 |
 | GET | `/users/me` | 获取/创建当前用户 |
 | PATCH | `/users/me` | 更新时区、经纬度 |
 | GET | `/plants` | 用户植物列表 |

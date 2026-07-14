@@ -29,6 +29,10 @@ npm run dev:h5
 
 JWT 通过 `uni.setStorageSync('greenai_token', …)` 持久化（key 见 `config.ts`）。
 
+## H5 访客用户
+
+H5 首次访问会调用 `POST /auth/guest` 创建独立访客，并把服务端返回的访客密钥保存在浏览器 storage；后端数据库只保存密钥哈希。JWT 过期后可用本机密钥恢复同一访客。主动退出会清除密钥且不可恢复原访客，页面会显示「创建新访客」入口。
+
 ## Tab 图标
 
 `npm install` 后于仓库根目录执行一次：

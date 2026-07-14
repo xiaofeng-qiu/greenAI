@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { loadConfig } from "../config.js";
@@ -7,6 +8,15 @@ import { jscode2session } from "../services/wechat.js";
 const bodySchema = z.object({
   code: z.string().min(1),
 });
+
+const guestBodySchema = z.object({
+  guestKey: z.string().min(32).max(128).regex(/^[A-Za-z0-9_-]+$/).optional(),
+});
+
+function guestOpenid(guestKey: string): string {
+  const digest = createHash("sha256").update(guestKey).digest("hex");
+  return `guest:${digest}`;
+}
 
 const authRoutes: FastifyPluginAsync = async (app) => {
   const config = loadConfig();
@@ -37,6 +47,23 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     return { token, userId: user.id };
   });
 
+  app.post("/auth/guest", async (req, reply) => {
+    const parsed = guestBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({ error: "invalid_body" });
+    }
+
+    const guestKey =
+      parsed.data.guestKey ?? randomBytes(32).toString("base64url");
+    const user = await app.prisma.user.upsert({
+      where: { openid: guestOpenid(guestKey) },
+      create: { openid: guestOpenid(guestKey) },
+      update: {},
+    });
+    const token = signUserToken(user.id, config.JWT_SECRET);
+    return { token, userId: user.id, guestKey };
+  });
+
   app.post("/auth/dev", async (req, reply) => {
     const user = await app.prisma.user.upsert({
       where: { openid: "dev" },
@@ -49,4 +76,4 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 };
 
 export default authRoutes;
-
+
