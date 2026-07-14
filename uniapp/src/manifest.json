@@ -19,7 +19,13 @@
   },
   "quickapp": {},
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx33a4df0ac61d12f7",
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于获取所在地天气和生成养护建议"
+      }
+    },
+    "requiredPrivateInfos": ["getLocation"],
     "setting": {
       "urlCheck": false
     },
