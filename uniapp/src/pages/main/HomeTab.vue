@@ -36,6 +36,25 @@
       </view>
     </view>
 
+    <view v-if="todayTasks.length" class="px-40 mt-24">
+      <view class="row between mb-16">
+        <text class="sec-title">今日任务</text>
+        <text class="pill pill-green">{{ todayTasks.length }} 项</text>
+      </view>
+      <view class="card">
+        <view v-for="task in todayTasks" :key="task.id" class="task-row">
+          <view class="grow min0">
+            <text class="p-name">{{ taskTypeLabel(task.type) }} · {{ plantName(task.plantId) }}</text>
+            <text class="p-loc">截止 {{ formatDue(task.dueDate) }}</text>
+          </view>
+          <view class="row gap-12">
+            <text class="link" @click.stop="onComplete(task.id)">完成</text>
+            <text class="link muted" @click.stop="onSkip(task.id)">跳过</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <view class="px-40 mt-24">
       <view class="row between mb-16">
         <view class="row gap-24">
@@ -104,24 +123,76 @@
 import { computed } from "vue";
 import MicroBar from "../../components/MicroBar.vue";
 import { G } from "../../common/constants.js";
-import { plantStore } from "../../common/store.js";
+import { completeTask, plantStore, skipTask, taskTypeLabel } from "../../common/store.js";
 
 const emit = defineEmits(["openPlant", "openTool", "openCare"]);
 
 const plants = computed(() => plantStore.plants);
+const todayTasks = computed(() => plantStore.todayTasks || []);
 const needsAttention = computed(() => plants.value.filter((p) => p.status !== "good"));
 
 const weather = computed(() => plantStore.weather || {});
-const cityText = computed(() => (weather.value.latitude != null ? "已定位" : "上海"));
-const tempText = computed(() => (weather.value.temperatureC != null ? `${Math.round(weather.value.temperatureC)}°` : "28°"));
+const forecastDays = computed(() => {
+  const days = plantStore.forecast?.days;
+  return Array.isArray(days) ? days.slice(0, 3) : [];
+});
+const cityText = computed(() => (weather.value.latitude != null ? "已定位" : "未定位"));
+const tempText = computed(() => (weather.value.temperatureC != null ? `${Math.round(weather.value.temperatureC)}°` : "--°"));
 const humidityText = computed(() =>
-  weather.value.relativeHumidity != null ? `${Math.round(weather.value.relativeHumidity)}%` : "65%"
+  weather.value.relativeHumidity != null ? `${Math.round(weather.value.relativeHumidity)}%` : "--%"
 );
-const tempSubText = computed(() => "晴天  22° / 31°");
-const tipText = computed(
-  () =>
-    "💡 今日光照充足，建议上午10点前完成浇水，阳台植物可充分接受日照，气温偏高注意水分蒸发加快。"
-);
+const tempSubText = computed(() => {
+  const d0 = forecastDays.value[0];
+  if (!d0) return weather.value.temperatureC != null ? "今日天气已更新" : "设置位置后显示天气";
+  const lo = Math.round(d0.tempMinC ?? d0.temperature2mMin ?? d0.temperatureMin ?? 0);
+  const hi = Math.round(d0.tempMaxC ?? d0.temperature2mMax ?? d0.temperatureMax ?? 0);
+  return `预报 ${lo}° / ${hi}°`;
+});
+const tipText = computed(() => {
+  const bits = [];
+  if (weather.value.upcomingWetBias != null && weather.value.upcomingWetBias >= 0.08) {
+    bits.push(`预报偏湿 ${Math.round(weather.value.upcomingWetBias * 100)}%，浇水可适当保守`);
+  }
+  if (weather.value.upcomingDryBias != null && weather.value.upcomingDryBias >= 0.45) {
+    bits.push(`预报偏旱 ${Math.round(weather.value.upcomingDryBias * 100)}%，注意补水`);
+  }
+  if (!bits.length && todayTasks.value.length) {
+    bits.push(`今日有 ${todayTasks.value.length} 项养护任务，建议优先处理`);
+  }
+  if (!bits.length) bits.push("设置位置后可结合天气微调浇水节奏");
+  return `💡 ${bits.join("；")}`;
+});
+
+function plantName(plantId) {
+  const p = plants.value.find((x) => String(x.id) === String(plantId));
+  return p?.name || "植物";
+}
+
+function formatDue(iso) {
+  if (!iso) return "今日";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "今日";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function onComplete(id) {
+  try {
+    await completeTask(id);
+    uni.showToast({ title: "已完成", icon: "success" });
+  } catch {
+    uni.showToast({ title: "操作失败", icon: "none" });
+  }
+}
+
+async function onSkip(id) {
+  try {
+    await skipTask(id);
+    uni.showToast({ title: "已跳过", icon: "none" });
+  } catch {
+    uni.showToast({ title: "操作失败", icon: "none" });
+  }
+}
 
 const alertText = computed(() =>
   needsAttention.value
@@ -336,6 +407,20 @@ function badgeStyle(p) {
 }
 .plant-row:last-child {
   border-bottom: none;
+}
+.task-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 28rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.task-row:last-child {
+  border-bottom: none;
+}
+.link.muted {
+  color: #9e9ea7;
 }
 .strip {
   width: 6rpx;

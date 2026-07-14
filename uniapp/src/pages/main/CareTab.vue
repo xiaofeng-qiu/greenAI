@@ -2,17 +2,25 @@
   <scroll-view scroll-y class="scroll" :show-scrollbar="false">
     <view class="search-head">
       <view class="row gap-16">
-        <view class="search-fake grow"><text class="ph">🔍 搜索植物...</text></view>
+        <view class="search-fake grow">
+          <input class="search-inp" v-model="query" placeholder="🔍 搜索植物..." placeholder-class="ph" />
+        </view>
         <view class="add-btn" @click="goAdd"><text class="add-txt">+ 添加</text></view>
       </view>
     </view>
     <view class="stats row gap-16 px-32 py-20">
-      <view class="stat mint grow"><text class="stat-line"><text class="stat-num green">{{ plants.length }}</text><text class="stat-lbl">株</text></text></view>
+      <view class="stat mint grow"><text class="stat-line"><text class="stat-num green">{{ filtered.length }}</text><text class="stat-lbl">株</text></text></view>
       <view class="stat orange grow"><text class="stat-line"><text class="stat-num org">{{ badCount }}</text><text class="stat-lbl darko">待处理</text></text></view>
       <view class="stat white grow"><text class="stat-line"><text class="stat-num dark">{{ goodCount }}</text><text class="stat-lbl gray">良好</text></text></view>
     </view>
     <view class="list px-32 pb-40">
-      <view v-for="plant in plants" :key="plant.id" class="card" @click="openDetail(plant.id)">
+      <view
+        v-for="plant in filtered"
+        :key="plant.id"
+        class="card"
+        @click="openDetail(plant.id)"
+        @longpress="onPlantActions(plant)"
+      >
         <view class="strip" :style="{ backgroundColor: sc(plant) }" />
         <view class="inner row">
           <view class="emoji-box"><text class="emoji">{{ plant.emoji }}</text></view>
@@ -39,14 +47,22 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import MicroBar from "../../components/MicroBar.vue";
 import { G } from "../../common/constants.js";
-import { plantStore } from "../../common/store.js";
+import { deletePlant, plantStore } from "../../common/store.js";
 
+const query = ref("");
 const plants = computed(() => plantStore.plants);
-const badCount = computed(() => plants.value.filter((p) => p.status !== "good").length);
-const goodCount = computed(() => plants.value.filter((p) => p.status === "good").length);
+const filtered = computed(() => {
+  const q = query.value.trim();
+  if (!q) return plants.value;
+  return plants.value.filter(
+    (p) => String(p.name || "").includes(q) || String(p.location || "").includes(q)
+  );
+});
+const badCount = computed(() => filtered.value.filter((p) => p.status !== "good").length);
+const goodCount = computed(() => filtered.value.filter((p) => p.status === "good").length);
 
 function sc(p) {
   if (p.status === "good") return G;
@@ -69,6 +85,34 @@ function openDetail(id) {
 function goAdd() {
   uni.navigateTo({ url: "/pages/care/add" });
 }
+function onPlantActions(plant) {
+  uni.showActionSheet({
+    itemList: ["编辑植物", "查看养护计划", "删除植物"],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        uni.navigateTo({ url: `/pages/plant-edit/plant-edit?id=${plant.id}` });
+        return;
+      }
+      if (res.tapIndex === 1) {
+        uni.navigateTo({ url: `/pages/plant-plan/plant-plan?id=${plant.id}` });
+        return;
+      }
+      uni.showModal({
+        title: "删除植物",
+        content: `确定删除「${plant.name}」吗？`,
+        success: async (m) => {
+          if (!m.confirm) return;
+          try {
+            await deletePlant(plant.id);
+            uni.showToast({ title: "已删除", icon: "success" });
+          } catch {
+            uni.showToast({ title: "删除失败", icon: "none" });
+          }
+        },
+      });
+    },
+  });
+}
 </script>
 
 <style scoped>
@@ -83,7 +127,8 @@ function goAdd() {
 .py-20 { padding-top: 20rpx; padding-bottom: 20rpx; }
 .pb-40 { padding-bottom: 40rpx; }
 .search-head { background: #fff; padding: 32rpx 32rpx 24rpx; border-bottom: 1rpx solid #f0f0f0; }
-.search-fake { background: #f2f2f5; border-radius: 16rpx; padding: 20rpx 24rpx; }
+.search-fake { background: #f2f2f5; border-radius: 16rpx; padding: 8rpx 24rpx; }
+.search-inp { width: 100%; height: 64rpx; font-size: 26rpx; color: #3a3c3f; }
 .ph { font-size: 26rpx; color: #9e9ea7; }
 .add-btn { background: #1e7a4a; border-radius: 16rpx; padding: 20rpx 24rpx; flex-shrink: 0; }
 .add-txt { color: #fff; font-size: 26rpx; font-weight: 600; }

@@ -28,6 +28,28 @@
           </view>
         </view>
       </view>
+      <view class="row gap-16 px-32 mt-24">
+        <view class="half card pad act-card" @click="goEdit">
+          <text class="h2">✏️ 编辑植物</text>
+          <text class="act muted">修改信息 / 绑定传感器</text>
+        </view>
+        <view class="half card pad act-card" @click="goPlan">
+          <text class="h2">📅 养护计划</text>
+          <text class="act muted">查看任务排期</text>
+        </view>
+      </view>
+      <view v-if="plantTasks.length" class="px-32 mt-24">
+        <view class="card pad">
+          <text class="h">近期任务</text>
+          <view v-for="task in plantTasks" :key="task.id" class="rec row between">
+            <text class="rec-t">{{ taskTypeLabel(task.type) }} · {{ task.status }}</text>
+            <view class="row gap-12" v-if="task.status === 'pending'">
+              <text class="act" @click="onComplete(task.id)">完成</text>
+              <text class="act muted" @click="onSkip(task.id)">跳过</text>
+            </view>
+          </view>
+        </view>
+      </view>
       <view class="row gap-16 px-32 mt-24 pb-40">
         <view class="half card pad">
           <text class="h2">📈 近期趋势</text>
@@ -46,15 +68,15 @@
           <text class="h2">☁️ 天气影响</text>
           <view class="wx-line">
             <text :style="{ color: G }">✓</text>
-            <text> {{ plant.location }}光照{{ sunPct }}%，适合光合</text>
+            <text> {{ plant.location }}光照{{ sunPct }}%</text>
           </view>
           <view class="wx-line">
             <text :style="{ color: plant.water >= 50 ? G : '#c47000' }">{{ plant.water >= 50 ? '✓' : '!' }}</text>
-            <text> 28°C高温，蒸发加快20%</text>
+            <text> {{ weatherHint }}</text>
           </view>
           <view class="wx-line">
             <text :style="{ color: G }">✓</text>
-            <text> 湿度65%，生长适宜</text>
+            <text> 湿度 {{ humidityHint }}</text>
           </view>
         </view>
       </view>
@@ -68,9 +90,28 @@ import { computed, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import SensorRow from "../../components/SensorRow.vue";
 import { G } from "../../common/constants.js";
-import { fetchPlantDetail, findPlant } from "../../common/store.js";
+import {
+  completeTask,
+  fetchPlantDetail,
+  findPlant,
+  plantStore,
+  skipTask,
+  taskTypeLabel,
+} from "../../common/store.js";
 
 const plant = ref(null);
+const plantId = ref("");
+const plantTasks = ref([]);
+const seriesReadings = ref([]);
+
+function goEdit() {
+  if (!plantId.value) return;
+  uni.navigateTo({ url: `/pages/plant-edit/plant-edit?id=${plantId.value}` });
+}
+function goPlan() {
+  if (!plantId.value) return;
+  uni.navigateTo({ url: `/pages/plant-plan/plant-plan?id=${plantId.value}` });
+}
 
 const waterLevel = computed(() => {
   const w = plant.value?.water ?? 0;
@@ -110,24 +151,80 @@ const recs = computed(() => {
 });
 
 const history = computed(() => {
+  const readings = Array.isArray(seriesReadings.value) ? seriesReadings.value : [];
+  if (readings.length) {
+    return readings.slice(-3).map((r) => {
+      const d = new Date(r.measuredAt);
+      const date = Number.isNaN(d.getTime())
+        ? "--"
+        : `${d.getMonth() + 1}/${d.getDate()}`;
+      const w = Math.max(0, Math.min(100, Math.round(Number(r.soilMoisture ?? 50))));
+      const l =
+        r.lux != null
+          ? Math.max(0, Math.min(100, Math.round((Number(r.lux) / 15000) * 100)))
+          : plant.value?.light || 60;
+      const n =
+        r.phLevel != null
+          ? Math.max(0, Math.min(100, Math.round(((Number(r.phLevel) - 4) / 5) * 100)))
+          : plant.value?.nutrition || 60;
+      return { date, w, l, n };
+    });
+  }
   const p = plant.value;
   if (!p) return [];
   return [
-    { date: "6/10", w: Math.max(0, p.water - 15), l: p.light - 5, n: Math.max(0, p.nutrition - 3) },
-    { date: "6/11", w: Math.max(0, p.water - 8), l: p.light + 2, n: Math.max(0, p.nutrition - 1) },
-    { date: "6/12", w: p.water, l: p.light, n: p.nutrition },
+    { date: "D-2", w: Math.max(0, p.water - 15), l: Math.max(0, p.light - 5), n: Math.max(0, p.nutrition - 3) },
+    { date: "D-1", w: Math.max(0, p.water - 8), l: p.light, n: Math.max(0, p.nutrition - 1) },
+    { date: "今日", w: p.water, l: p.light, n: p.nutrition },
   ];
 });
 
 const sunPct = computed(() => Math.round((plant.value?.light || 0) * 0.8));
+const weatherHint = computed(() => {
+  const t = plantStore.weather?.temperatureC;
+  if (t == null) return "暂无天气数据";
+  const n = Math.round(Number(t));
+  if (n >= 28) return `${n}°C 偏热，蒸发加快`;
+  if (n <= 10) return `${n}°C 偏冷，注意保温`;
+  return `${n}°C，温度适宜`;
+});
+const humidityHint = computed(() => {
+  const h = plantStore.weather?.relativeHumidity;
+  if (h == null) return "--";
+  return `${Math.round(Number(h))}%`;
+});
+
+async function onComplete(id) {
+  try {
+    await completeTask(id);
+    plantTasks.value = plantTasks.value.filter((t) => t.id !== id);
+    uni.showToast({ title: "已完成", icon: "success" });
+  } catch {
+    uni.showToast({ title: "操作失败", icon: "none" });
+  }
+}
+
+async function onSkip(id) {
+  try {
+    await skipTask(id);
+    plantTasks.value = plantTasks.value.filter((t) => t.id !== id);
+    uni.showToast({ title: "已跳过", icon: "none" });
+  } catch {
+    uni.showToast({ title: "操作失败", icon: "none" });
+  }
+}
 
 onLoad(async (q) => {
   const id = q?.id;
+  plantId.value = id ? String(id) : "";
   plant.value = id ? findPlant(id) : null;
   if (!id) return;
   try {
     const detail = await fetchPlantDetail(id);
     const latest = detail.series?.latest || {};
+    const readings = detail.series?.readings || detail.series?.points || [];
+    seriesReadings.value = Array.isArray(readings) ? readings : [];
+    plantTasks.value = Array.isArray(detail.tasks) ? detail.tasks.slice(0, 8) : [];
     const light =
       latest?.lux != null ? Math.max(0, Math.min(100, Math.round((latest.lux / 15000) * 100))) : (plant.value?.light ?? 60);
     const water =
@@ -288,6 +385,9 @@ onLoad(async (q) => {
   flex: 1;
   min-width: 0;
 }
+.act-card {
+  min-height: 120rpx;
+}
 .h2 {
   font-size: 24rpx;
   font-weight: 700;
@@ -339,6 +439,18 @@ onLoad(async (q) => {
   flex-wrap: wrap;
   align-items: flex-start;
   margin-bottom: 16rpx;
+}
+.act {
+  font-size: 22rpx;
+  color: #1e7a4a;
+  font-weight: 600;
+}
+.act.muted {
+  color: #9e9ea7;
+}
+.between {
+  justify-content: space-between;
+  align-items: center;
 }
 .empty {
   padding: 80rpx;

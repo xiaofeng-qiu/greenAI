@@ -94,7 +94,12 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { CATEGORIES, ARTICLES, TOOL_CONFIG } from "../../common/constants.js";
-import { plantStore } from "../../common/store.js";
+import {
+  diagnoseByPhoto,
+  loadKnowledgeArticles,
+  plantStore,
+  searchKnowledge,
+} from "../../common/store.js";
 import { request } from "../../utils/request";
 import { chooseImageBase64 } from "../../utils/image";
 
@@ -107,11 +112,30 @@ const query = ref("");
 const activeTool = ref(null);
 const phase = ref("capture");
 const result = ref({ name: "", confidence: 0, tags: [], adviceLabel: "建议", advice: [] });
+const apiArticles = ref([]);
 
 const toolKeys = ["plantId", "soilId", "pestDiag"];
 
+function normalizeArticle(a, index = 0) {
+  return {
+    id: a.slug || a.id || String(index + 1),
+    title: a.title || "未命名文章",
+    emoji: "📖",
+    category: a.layer === "pest_disease" ? "病虫害" : a.layer === "environment" ? "环境" : "养护技巧",
+    readTime: "3分钟",
+    difficulty: "初级",
+    tag: a.status === "published" ? "" : "草稿",
+    raw: a,
+  };
+}
+
+const sourceArticles = computed(() => {
+  if (apiArticles.value.length) return apiArticles.value.map(normalizeArticle);
+  return ARTICLES;
+});
+
 const filtered = computed(() =>
-  ARTICLES.filter((a) => {
+  sourceArticles.value.filter((a) => {
     const catOk = category.value === "全部" || a.category === category.value;
     const q = query.value.trim();
     const qOk = !q || a.title.includes(q) || a.category.includes(q);
@@ -125,13 +149,30 @@ const capBoxStyle = computed(() => ({ borderColor: `${cfg.value.color}55`, backg
 watch(
   () => props.active,
   (v) => {
-    if (v && plantStore.pendingTool) {
-      startTool(plantStore.pendingTool);
-      plantStore.pendingTool = null;
+    if (v) {
+      refreshArticles();
+      if (plantStore.pendingTool) {
+        startTool(plantStore.pendingTool);
+        plantStore.pendingTool = null;
+      }
     }
     if (!v) closeTool();
-  }
+  },
+  { immediate: true }
 );
+
+watch(query, () => {
+  if (props.active) refreshArticles();
+});
+
+async function refreshArticles() {
+  try {
+    const q = query.value.trim();
+    apiArticles.value = q ? await searchKnowledge(q) : await loadKnowledgeArticles();
+  } catch {
+    apiArticles.value = plantStore.knowledgeArticles || [];
+  }
+}
 
 function startTool(t) {
   activeTool.value = t;
@@ -145,7 +186,7 @@ function closeTool() {
 }
 
 function openArticle(id) {
-  uni.navigateTo({ url: `/pages/knowledge/detail?id=${id}` });
+  uni.navigateTo({ url: `/pages/knowledge/detail?id=${encodeURIComponent(id)}` });
 }
 
 function resultFromIdentify(data) {
@@ -181,13 +222,33 @@ async function doCapture() {
       const data = await request({ path: "/soil/estimate-photo", method: "POST", data: { imageBase64 } });
       result.value = resultFromSoil(data);
     } else {
-      result.value = {
-        name: "病虫害诊断建议",
-        confidence: 85,
-        tags: ["叶片病斑", "建议复检"],
-        adviceLabel: "处理建议",
-        advice: ["先剪除明显病叶并保持通风。", "若 2-3 天持续扩散，建议上传清晰照片到诊断页进一步分析。"],
-      };
+      try {
+        const data = await diagnoseByPhoto({ imageBase64 });
+        result.value = {
+          name: data?.summary || data?.diagnosis || "病虫害诊断建议",
+          confidence: data?.confidence ? Math.round(Number(data.confidence) * 100) : 80,
+          tags: Array.isArray(data?.labels) ? data.labels : ["AI诊断"],
+          adviceLabel: "处理建议",
+          advice: Array.isArray(data?.advice)
+            ? data.advice
+            : [data?.advice || data?.rationale || "建议先隔离病叶并保持通风。"],
+        };
+      } catch {
+        const fallback = await request({
+          path: "/diagnose",
+          method: "POST",
+          data: { symptomIds: ["leaf_spots_brown"] },
+        });
+        result.value = {
+          name: fallback?.title || "病虫害诊断建议",
+          confidence: 75,
+          tags: ["规则引擎"],
+          adviceLabel: "处理建议",
+          advice: Array.isArray(fallback?.steps)
+            ? fallback.steps
+            : [fallback?.summary || "先剪除明显病叶并保持通风。"],
+        };
+      }
     }
     phase.value = "result";
   } catch (e) {

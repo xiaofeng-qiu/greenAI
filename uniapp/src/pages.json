@@ -30,6 +30,54 @@
         "navigationBarBackgroundColor": "#ffffff",
         "backgroundColor": "#f0faf5"
       }
+    },
+    {
+      "path": "pages/plant-edit/plant-edit",
+      "style": {
+        "navigationBarTitleText": "编辑植物",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
+      "path": "pages/plant-plan/plant-plan",
+      "style": {
+        "navigationBarTitleText": "养护计划",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
+      "path": "pages/diagnose/diagnose",
+      "style": {
+        "navigationBarTitleText": "问题诊断",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
+      "path": "pages/identify-result/identify-result",
+      "style": {
+        "navigationBarTitleText": "识别结果",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
+      "path": "pages/soil-result/soil-result",
+      "style": {
+        "navigationBarTitleText": "土壤评估",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
+    },
+    {
+      "path": "pages/device-provision/device-provision",
+      "style": {
+        "navigationBarTitleText": "传感器配网",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f0faf5"
+      }
     }
   ],
   "globalStyle": {

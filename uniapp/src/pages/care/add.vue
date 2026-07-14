@@ -1,12 +1,12 @@
 <template>
   <view class="page">
-    <scroll-view scroll-y class="scroll">
+    <view class="scroll">
       <view class="pad">
-        <view class="photo" :class="{ ok: captured }" @click="captured = !captured">
+        <view class="photo" :class="{ ok: captured }" @click="onCapture">
           <template v-if="captured">
             <view class="check-circle"><text class="check">✓</text></view>
-            <text class="p1" :style="{ color: G }">照片已拍摄</text>
-            <text class="p2">点击重新拍照</text>
+            <text class="p1" :style="{ color: G }">{{ identifyName || "照片已拍摄" }}</text>
+            <text class="p2">点击重新拍照识别</text>
           </template>
           <template v-else>
             <view class="cam-bg"><text class="cam">📷</text></view>
@@ -15,7 +15,13 @@
           </template>
         </view>
         <text class="label">名称</text>
-        <input class="inp" v-model="name" placeholder="输入植物名称（如：蝴蝶兰）" />
+        <input
+          v-model="name"
+          class="inp"
+          type="text"
+          maxlength="80"
+          placeholder="输入植物名称（如：蝴蝶兰）"
+        />
         <text class="label">位置</text>
         <view class="inp row between" @click="showLoc = !showLoc">
           <text :class="location ? 'dark' : 'ph'">{{ location || "选择种植位置" }}</text>
@@ -28,6 +34,24 @@
             <text v-if="location === loc" :style="{ color: G }">✓</text>
           </view>
         </view>
+        <text class="label">绑定传感器（可选）</text>
+        <template v-if="availableDevices.length">
+          <picker
+            mode="selector"
+            :range="deviceLabels"
+            :value="deviceIndex"
+            @change="onDeviceChange"
+          >
+            <view class="inp row between">
+              <text :class="deviceIndex ? 'dark' : 'ph'">{{ deviceLabels[deviceIndex] }}</text>
+              <text class="arrow">▼</text>
+            </view>
+          </picker>
+        </template>
+        <view v-else class="inp row between sensor-empty" @click="onNoDevice">
+          <text class="ph">暂无可绑定传感器</text>
+          <text class="arrow">›</text>
+        </view>
         <view class="tip">
           <text class="tip-h">📡 自动监测</text>
           <text class="tip-b"
@@ -35,7 +59,7 @@
           >
         </view>
       </view>
-    </scroll-view>
+    </view>
     <view class="foot pad-h">
       <view class="btn" :class="{ disabled: !canSubmit || submitting }" @click="submit">
         <text class="btn-t">确认添加</text>
@@ -46,16 +70,56 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import { G, LOCATIONS } from "../../common/constants.js";
-import { createPlant } from "../../common/store.js";
+import {
+  bindDeviceToPlant,
+  createPlant,
+  identifyPlant,
+  loadDevices,
+} from "../../common/store.js";
+import { chooseImageBase64 } from "../../utils/image";
 
 const name = ref("");
 const location = ref("");
 const showLoc = ref(false);
 const captured = ref(false);
+const identifyName = ref("");
+const identifying = ref(false);
 const submitting = ref(false);
+const availableDevices = ref([]);
+const deviceIndex = ref(0);
 
 const canSubmit = computed(() => name.value.trim() && location.value);
+const deviceLabels = computed(() => [
+  "暂不绑定",
+  ...availableDevices.value.map((device) => device.label || device.hardwareId),
+]);
+
+onShow(async () => {
+  try {
+    const devices = await loadDevices();
+    availableDevices.value = devices.filter((device) => !device.plantId);
+    if (deviceIndex.value >= deviceLabels.value.length) {
+      deviceIndex.value = 0;
+    }
+  } catch {
+    availableDevices.value = [];
+    deviceIndex.value = 0;
+  }
+});
+
+function onDeviceChange(event) {
+  deviceIndex.value = Number(event?.detail?.value ?? 0);
+}
+
+function onNoDevice() {
+  uni.showModal({
+    title: "暂无可绑定传感器",
+    content: "请先在「我 → 传感器绑定码」生成绑定码并完成设备配网；已绑定其他植物的设备不会出现在这里。",
+    showCancel: false,
+  });
+}
 
 function pickLoc(loc) {
   location.value = loc;
@@ -66,11 +130,32 @@ function locationToIndoor(loc) {
   return loc !== "户外";
 }
 
+async function onCapture() {
+  if (identifying.value) return;
+  identifying.value = true;
+  try {
+    const imageBase64 = await chooseImageBase64();
+    const data = await identifyPlant(imageBase64);
+    const best = data?.best || {};
+    identifyName.value = best.name || "";
+    if (identifyName.value && !name.value.trim()) {
+      name.value = identifyName.value;
+    }
+    captured.value = true;
+    uni.showToast({ title: "识别完成", icon: "success" });
+  } catch {
+    captured.value = true;
+    uni.showToast({ title: "识别失败，可手动填写", icon: "none" });
+  } finally {
+    identifying.value = false;
+  }
+}
+
 async function submit() {
   if (!canSubmit.value || submitting.value) return;
   submitting.value = true;
   try {
-    await createPlant({
+    const created = await createPlant({
       nickname: name.value.trim(),
       speciesLabel: name.value.trim(),
       waterPreference: "medium",
@@ -80,7 +165,19 @@ async function submit() {
       soilMoistureHint: "moderate",
       careTips: `位置：${location.value}`,
     });
-    uni.showToast({ title: "已添加", icon: "success" });
+    const selectedDevice = availableDevices.value[deviceIndex.value - 1];
+    let bindingFailed = false;
+    if (selectedDevice) {
+      try {
+        await bindDeviceToPlant(selectedDevice.id, created.id);
+      } catch {
+        bindingFailed = true;
+      }
+    }
+    uni.showToast({
+      title: bindingFailed ? "植物已添加，设备绑定失败" : "已添加",
+      icon: bindingFailed ? "none" : "success",
+    });
     setTimeout(() => {
       uni.navigateBack();
     }, 400);
@@ -94,14 +191,18 @@ async function submit() {
 
 <style scoped>
 .page {
+  height: 100vh;
   min-height: 100vh;
   background: #f0faf5;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .scroll {
   flex: 1;
-  height: 0;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .pad {
   padding: 40rpx;
@@ -171,7 +272,9 @@ async function submit() {
   margin-bottom: 16rpx;
 }
 .inp {
+  display: block;
   width: 100%;
+  min-height: 96rpx;
   box-sizing: border-box;
   background: #f2f2f5;
   border-radius: 24rpx;
@@ -200,6 +303,9 @@ async function submit() {
 .arrow {
   color: #666;
   font-size: 24rpx;
+}
+.sensor-empty {
+  color: #b0b3bc;
 }
 .loc-card {
   background: #fff;

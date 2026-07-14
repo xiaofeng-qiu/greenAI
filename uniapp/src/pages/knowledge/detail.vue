@@ -2,24 +2,22 @@
   <view class="page">
     <view v-if="article" class="card">
       <view class="head">
-        <text class="emoji">{{ article.emoji }}</text>
+        <text class="emoji">{{ article.emoji || "📖" }}</text>
         <view class="meta">
           <text class="title">{{ article.title }}</text>
           <view class="tags">
-            <text class="tag">{{ article.category }}</text>
-            <text class="tag">{{ article.readTime }}</text>
-            <text class="tag">{{ article.difficulty }}</text>
+            <text v-if="article.category" class="tag">{{ article.category }}</text>
+            <text v-if="article.layer" class="tag">{{ article.layer }}</text>
           </view>
         </view>
       </view>
       <view class="body">
-        <text class="p">这是一篇关于「{{ article.title }}」的养护知识内容。</text>
-        <text class="p">当前为 mock 详情页，用于打通“知识列表 -> 详情页”交互链路。</text>
-        <text class="p">后续可替换为后端知识库正文字段或 markdown 渲染。</text>
+        <text v-if="article.summary" class="p">{{ article.summary }}</text>
+        <text class="p">{{ article.body || "暂无正文" }}</text>
       </view>
     </view>
     <view v-else class="empty">
-      <text>未找到文章</text>
+      <text>{{ loading ? "加载中…" : "未找到文章" }}</text>
     </view>
   </view>
 </template>
@@ -28,12 +26,40 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { ARTICLES } from "../../common/constants.js";
+import { getKnowledgeArticle } from "../../common/store.js";
 
 const article = ref(null);
+const loading = ref(false);
 
-onLoad((q) => {
-  const id = Number(q?.id || 0);
-  article.value = ARTICLES.find((a) => a.id === id) || null;
+onLoad(async (q) => {
+  const id = String(q?.id || "").trim();
+  if (!id) return;
+  loading.value = true;
+  try {
+    const data = await getKnowledgeArticle(id);
+    article.value = {
+      emoji: "📖",
+      title: data.title,
+      category: data.locale || "zh",
+      layer: data.layer,
+      summary: data.summary,
+      body: data.body,
+    };
+  } catch {
+    const local = ARTICLES.find((a) => String(a.id) === id);
+    article.value = local
+      ? {
+          emoji: local.emoji,
+          title: local.title,
+          category: local.category,
+          layer: local.difficulty,
+          summary: "",
+          body: `这是关于「${local.title}」的本地兜底内容。`,
+        }
+      : null;
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -80,25 +106,25 @@ onLoad((q) => {
 }
 .tag {
   font-size: 20rpx;
-  color: #1e7a4a;
-  background: #e2f5ec;
-  border-radius: 999rpx;
   padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  background: #e2f5ec;
+  color: #1e7a4a;
 }
 .body {
-  border-top: 1rpx solid #f0f0f0;
-  padding-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 .p {
-  display: block;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #424d59;
-  line-height: 1.7;
-  margin-bottom: 14rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 .empty {
+  padding: 80rpx;
   text-align: center;
-  color: #9e9ea7;
-  padding-top: 80rpx;
+  color: #999;
 }
 </style>

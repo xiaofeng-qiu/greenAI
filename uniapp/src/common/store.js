@@ -63,6 +63,9 @@ export const plantStore = reactive({
   pendingTool: null,
   todayTasks: [],
   weather: null,
+  forecast: null,
+  devices: [],
+  knowledgeArticles: [],
   loading: false,
   error: "",
 });
@@ -172,6 +175,19 @@ export async function loadDashboardData() {
     } catch {
       plantStore.weather = null;
     }
+
+    try {
+      plantStore.forecast = await request({ path: "/weather/forecast" });
+    } catch {
+      plantStore.forecast = null;
+    }
+
+    try {
+      const devices = await request({ path: "/devices" });
+      plantStore.devices = Array.isArray(devices) ? devices : [];
+    } catch {
+      plantStore.devices = [];
+    }
   } catch (err) {
     plantStore.error = err?.message || "加载失败";
     plantStore.plants = [];
@@ -208,4 +224,137 @@ export async function fetchPlantDetail(id) {
     tasks: Array.isArray(tasks) ? tasks : [],
     series,
   };
+}
+
+export async function createDeviceBindingCode() {
+  await ensureAuth();
+  return request({ path: "/devices/binding-codes", method: "POST", data: {} });
+}
+
+export async function completeTask(taskId) {
+  await ensureAuth();
+  await request({ path: `/tasks/${taskId}/complete`, method: "POST", data: {} });
+  plantStore.todayTasks = plantStore.todayTasks.filter((t) => t.id !== taskId);
+  await loadDashboardData();
+}
+
+export async function skipTask(taskId) {
+  await ensureAuth();
+  await request({ path: `/tasks/${taskId}/skip`, method: "POST", data: {} });
+  plantStore.todayTasks = plantStore.todayTasks.filter((t) => t.id !== taskId);
+  await loadDashboardData();
+}
+
+export async function updatePlant(id, payload) {
+  await ensureAuth();
+  const updated = await request({ path: `/plants/${id}`, method: "PATCH", data: payload });
+  try {
+    await request({ path: `/plants/${id}/plan/regenerate`, method: "POST", data: {} });
+  } catch {
+    // ignore regenerate failures
+  }
+  await loadDashboardData();
+  return updated;
+}
+
+export async function deletePlant(id) {
+  await ensureAuth();
+  await request({ path: `/plants/${id}`, method: "DELETE" });
+  plantStore.plants = plantStore.plants.filter((p) => String(p.id) !== String(id));
+  plantStore.todayTasks = plantStore.todayTasks.filter((t) => String(t.plantId) !== String(id));
+  await loadDashboardData();
+}
+
+export async function loadDevices() {
+  await ensureAuth();
+  const devices = await request({ path: "/devices" });
+  plantStore.devices = Array.isArray(devices) ? devices : [];
+  return plantStore.devices;
+}
+
+export async function bindDeviceToPlant(deviceId, plantId) {
+  await ensureAuth();
+  const updated = await request({
+    path: `/devices/${deviceId}`,
+    method: "PATCH",
+    data: { plantId: plantId || null },
+  });
+  await loadDevices();
+  return updated;
+}
+
+export async function updateDevice(deviceId, payload) {
+  await ensureAuth();
+  const updated = await request({
+    path: `/devices/${deviceId}`,
+    method: "PATCH",
+    data: payload,
+  });
+  await loadDevices();
+  return updated;
+}
+
+export async function updateUserMe(payload) {
+  await ensureAuth();
+  return request({ path: "/users/me", method: "PATCH", data: payload });
+}
+
+export async function loadKnowledgeArticles() {
+  await ensureAuth();
+  try {
+    const data = await request({ path: "/knowledge/articles" });
+    const list = Array.isArray(data) ? data : data?.items || data?.articles || [];
+    plantStore.knowledgeArticles = list;
+    return list;
+  } catch {
+    plantStore.knowledgeArticles = [];
+    return [];
+  }
+}
+
+export async function searchKnowledge(q) {
+  await ensureAuth();
+  const query = String(q || "").trim();
+  if (!query) return loadKnowledgeArticles();
+  const data = await request({ path: `/knowledge/search?q=${encodeURIComponent(query)}` });
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.articles)) return data.articles;
+  if (Array.isArray(data?.buckets?.articles)) return data.buckets.articles;
+  return [];
+}
+
+export async function getKnowledgeArticle(slugOrId) {
+  await ensureAuth();
+  const key = String(slugOrId || "").trim();
+  if (!key) return null;
+  return request({ path: `/knowledge/articles/${encodeURIComponent(key)}` });
+}
+
+export async function diagnoseBySymptoms(payload) {
+  await ensureAuth();
+  return request({ path: "/diagnose", method: "POST", data: payload });
+}
+
+export async function diagnoseByPhoto(payload) {
+  await ensureAuth();
+  return request({ path: "/diagnose/llm", method: "POST", data: payload });
+}
+
+export async function identifyPlant(imageBase64) {
+  await ensureAuth();
+  return request({ path: "/plants/identify", method: "POST", data: { imageBase64 } });
+}
+
+export async function estimateSoilPhoto(payload) {
+  await ensureAuth();
+  return request({ path: "/soil/estimate-photo", method: "POST", data: payload });
+}
+
+export function taskTypeLabel(type) {
+  if (type === "water") return "浇水";
+  if (type === "fertilize") return "施肥";
+  if (type === "repot") return "换盆";
+  if (type === "inspect") return "巡检";
+  return type || "任务";
 }

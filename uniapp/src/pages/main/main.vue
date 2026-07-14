@@ -65,6 +65,18 @@ function goDetail(id) {
 }
 
 function onToolFromHome(tool) {
+  if (tool === "plantId") {
+    uni.navigateTo({ url: "/pages/identify-result/identify-result" });
+    return;
+  }
+  if (tool === "soilId") {
+    uni.navigateTo({ url: "/pages/soil-result/soil-result" });
+    return;
+  }
+  if (tool === "pestDiag") {
+    uni.navigateTo({ url: "/pages/diagnose/diagnose" });
+    return;
+  }
   plantStore.pendingTool = tool;
   tab.value = 2;
 }
