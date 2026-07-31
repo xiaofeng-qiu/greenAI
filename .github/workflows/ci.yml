@@ -130,11 +130,31 @@ jobs:
           }
           NODE
 
+  sensor-simulator:
+    name: Sensor Simulator
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19"
+          cache: npm
+          cache-dependency-path: tools/sensor-simulator/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix tools/sensor-simulator
+
+      - name: Build
+        run: npm run build:sensor-simulator
+
   ci-success:
     name: CI (all required checks)
     runs-on: ubuntu-latest
     if: always()
-    needs: [backend, docker-compose, openspec-docs, miniprogram-json]
+    needs: [backend, docker-compose, openspec-docs, miniprogram-json, sensor-simulator]
     steps:
       - name: Require all jobs successful
         run: |
@@ -142,3 +162,4 @@ jobs:
           test "${{ needs.docker-compose.result }}" = "success"
           test "${{ needs.openspec-docs.result }}" = "success"
           test "${{ needs.miniprogram-json.result }}" = "success"
+          test "${{ needs.sensor-simulator.result }}" = "success"

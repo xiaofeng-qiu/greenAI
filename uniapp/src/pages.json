@@ -102,15 +102,6 @@
         "navigationBarBackgroundColor": "#ffffff",
         "backgroundColor": "#f0faf5"
       }
-    },
-    {
-      "path": "pages/dev-sensor/dev-sensor",
-      "style": {
-        "navigationStyle": "custom",
-        "navigationBarTitleText": "传感器数据模拟器",
-        "navigationBarBackgroundColor": "#ffffff",
-        "backgroundColor": "#f0faf5"
-      }
     }
   ],
   "globalStyle": {

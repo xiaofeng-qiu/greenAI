@@ -13,6 +13,10 @@ const deviceParamsSchema = z.object({
   deviceId: z.string().min(1).max(64),
 });
 
+const plantParamsSchema = z.object({
+  plantId: z.string().min(1).max(64),
+});
+
 const jobParamsSchema = z.object({
   jobId: z.string().uuid(),
 });
@@ -225,6 +229,7 @@ const devSensorSimulatorRoutes: FastifyPluginAsync = async (app) => {
       select: {
         id: true,
         openid: true,
+        displayName: true,
         createdAt: true,
         _count: {
           select: { plants: true, devices: true },
@@ -362,6 +367,62 @@ const devSensorSimulatorRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.patch("/dev/sensor-simulator/plants/:plantId", async (req, reply) => {
+    const params = plantParamsSchema.safeParse(req.params);
+    const body = simulatedPlantSchema
+      .pick({ nickname: true, speciesLabel: true })
+      .safeParse(req.body);
+    if (!params.success || !body.success) {
+      return reply.status(400).send({
+        error: "invalid_body",
+        message: "模拟植物信息格式错误",
+      });
+    }
+
+    const plant = await app.prisma.plant.findUnique({
+      where: { id: params.data.plantId },
+      select: { id: true },
+    });
+    if (!plant) {
+      return reply.status(404).send({
+        error: "plant_not_found",
+        message: "目标植物不存在",
+      });
+    }
+
+    return app.prisma.plant.update({
+      where: { id: plant.id },
+      data: body.data,
+      select: {
+        id: true,
+        nickname: true,
+        speciesLabel: true,
+        createdAt: true,
+      },
+    });
+  });
+
+  app.delete("/dev/sensor-simulator/plants/:plantId", async (req, reply) => {
+    const params = plantParamsSchema.safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: "invalid_params" });
+    }
+
+    const plant = await app.prisma.plant.findUnique({
+      where: { id: params.data.plantId },
+      select: { id: true },
+    });
+    if (!plant) {
+      return reply.status(404).send({
+        error: "plant_not_found",
+        message: "目标植物不存在",
+      });
+    }
+
+    await app.prisma.plant.delete({ where: { id: plant.id } });
+    return { deleted: true, plantId: plant.id };
+  });
+
   app.post("/dev/sensor-simulator/users/:userId/devices", async (req, reply) => {
     const params = userParamsSchema.safeParse(req.params);
     const body = simulatedDeviceSchema.safeParse(req.body);
@@ -435,6 +496,33 @@ const devSensorSimulatorRoutes: FastifyPluginAsync = async (app) => {
         createdAt: true,
       },
     });
+  });
+
+  app.delete("/dev/sensor-simulator/devices/:deviceId", async (req, reply) => {
+    const params = deviceParamsSchema.safeParse(req.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: "invalid_params" });
+    }
+
+    const device = await app.prisma.device.findUnique({
+      where: { id: params.data.deviceId },
+      select: { id: true },
+    });
+    if (!device) {
+      return reply.status(404).send({
+        error: "device_not_found",
+        message: "模拟设备不存在",
+      });
+    }
+
+    const jobId = latestJobByDevice.get(device.id);
+    const job = jobId ? scheduledJobs.get(jobId) : undefined;
+    if (job?.status === "running") finishJob(job, "stopped");
+    if (jobId) scheduledJobs.delete(jobId);
+    latestJobByDevice.delete(device.id);
+
+    await app.prisma.device.delete({ where: { id: device.id } });
+    return { deleted: true, deviceId: device.id };
   });
 
   app.post("/dev/sensor-simulator/devices/:deviceId/jobs", async (req, reply) => {

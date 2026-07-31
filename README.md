@@ -125,7 +125,20 @@ npm run dev:h5
 
 浏览器打开 `http://localhost:5173` 即可（API 地址自动取 `window.location.hostname:3000`）。
 
-### 5. 运行测试
+### 5. 运行 Sensor Simulator
+
+Sensor Simulator 是独立开发工具，不包含在 uni-app 客户端中。先在后端环境设置
+`ENABLE_DEV_SENSOR_SIMULATOR=1`，然后从仓库根目录运行：
+
+```bash
+npm install --prefix tools/sensor-simulator
+npm run dev:sensor-simulator
+```
+
+浏览器打开 `http://localhost:5174`。开发服务器会将 `/dev/sensor-simulator/*`
+代理到 `http://127.0.0.1:3000`。生产环境必须关闭该后端开关。
+
+### 6. 运行测试
 
 ```bash
 cd backend
@@ -216,6 +229,7 @@ GitHub Actions 每个 push 自动执行（`.github/workflows/ci.yml`）：
 - **Backend**：TypeScript 编译 + 单元测试（PostgreSQL service container）
 - **Docker Compose**：Compose 文件配置校验
 - **Miniprogram JSON**：小程序 JSON 配置文件完整性校验
+- **Sensor Simulator**：独立 Vite 应用依赖安装与生产构建
 
 ## 技术栈
 

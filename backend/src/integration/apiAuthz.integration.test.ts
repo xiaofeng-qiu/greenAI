@@ -494,7 +494,7 @@ describe.skipIf(!runIntegration)("API development sensor simulator", () => {
 
   it("creates a plant, binds a simulated device, and writes readings", async () => {
     const userA = await app!.prisma.user.create({
-      data: { openid: `it-sim-a-${randomUUID()}` },
+      data: { openid: `it-sim-a-${randomUUID()}`, displayName: "Simulator User" },
     });
     const userB = await app!.prisma.user.create({
       data: { openid: `it-sim-b-${randomUUID()}` },
@@ -524,6 +524,22 @@ describe.skipIf(!runIntegration)("API development sensor simulator", () => {
         lightLevel: LightLevel.medium,
         carePlan: { baseIntervalDays: 7, horizonDays: 14 },
       });
+
+      const updatedPlantResponse = await app!.inject({
+        method: "PATCH",
+        url: `/dev/sensor-simulator/plants/${plant.id}`,
+        payload: {
+          nickname: "Updated Simulated Plant",
+          speciesLabel: "Updated Test",
+        },
+      });
+      expect(updatedPlantResponse.statusCode).toBe(200);
+      expect(updatedPlantResponse.json()).toMatchObject({
+        id: plant.id,
+        nickname: "Updated Simulated Plant",
+        speciesLabel: "Updated Test",
+      });
+
       const hardwareId = `hw-sim-${randomUUID()}`;
 
       const users = await app!.inject({
@@ -532,21 +548,30 @@ describe.skipIf(!runIntegration)("API development sensor simulator", () => {
       });
       expect(users.statusCode).toBe(200);
       expect(users.json()).toEqual(
-        expect.arrayContaining([expect.objectContaining({ id: userA.id })])
+        expect.arrayContaining([
+          expect.objectContaining({ id: userA.id, displayName: "Simulator User" }),
+        ])
       );
 
-      const binding = await app!.inject({
+      const creation = await app!.inject({
         method: "POST",
         url: `/dev/sensor-simulator/users/${userA.id}/devices`,
         payload: {
           hardwareId,
           label: "Integration Simulator",
-          plantId: plant.id,
         },
       });
+      expect(creation.statusCode).toBe(200);
+      const device = creation.json() as { id: string; plantId: string | null };
+      expect(device.plantId).toBeNull();
+
+      const binding = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userA.id}/devices`,
+        payload: { hardwareId, plantId: plant.id },
+      });
       expect(binding.statusCode).toBe(200);
-      const device = binding.json() as { id: string; plantId: string };
-      expect(device.plantId).toBe(plant.id);
+      expect(binding.json()).toMatchObject({ id: device.id, plantId: plant.id });
 
       const conflictingBinding = await app!.inject({
         method: "POST",
@@ -554,6 +579,38 @@ describe.skipIf(!runIntegration)("API development sensor simulator", () => {
         payload: { hardwareId },
       });
       expect(conflictingBinding.statusCode).toBe(409);
+
+      const disposablePlantResponse = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userA.id}/plants`,
+        payload: { nickname: "Disposable Plant", speciesLabel: "Test" },
+      });
+      const disposablePlant = disposablePlantResponse.json() as { id: string };
+      const deletedPlantResponse = await app!.inject({
+        method: "DELETE",
+        url: `/dev/sensor-simulator/plants/${disposablePlant.id}`,
+      });
+      expect(deletedPlantResponse.statusCode).toBe(200);
+      expect(deletedPlantResponse.json()).toMatchObject({
+        deleted: true,
+        plantId: disposablePlant.id,
+      });
+
+      const disposableDeviceResponse = await app!.inject({
+        method: "POST",
+        url: `/dev/sensor-simulator/users/${userA.id}/devices`,
+        payload: { hardwareId: `hw-delete-${randomUUID()}` },
+      });
+      const disposableDevice = disposableDeviceResponse.json() as { id: string };
+      const deletedDeviceResponse = await app!.inject({
+        method: "DELETE",
+        url: `/dev/sensor-simulator/devices/${disposableDevice.id}`,
+      });
+      expect(deletedDeviceResponse.statusCode).toBe(200);
+      expect(deletedDeviceResponse.json()).toMatchObject({
+        deleted: true,
+        deviceId: disposableDevice.id,
+      });
 
       const measuredAt = new Date().toISOString();
 
