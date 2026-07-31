@@ -8,6 +8,7 @@ import { reverseGeocodeLabel } from "../services/openMeteoGeocode.js";
 
 const patchBody = z
   .object({
+    displayName: z.string().trim().min(1).max(40).optional(),
     timezone: z
       .string()
       .min(2)
@@ -21,13 +22,14 @@ const patchBody = z
     windowAspect: z.nativeEnum(WindowAspect).optional(),
   })
   .superRefine((d, ctx) => {
+    const hasName = d.displayName !== undefined;
     const hasTz = d.timezone !== undefined;
     const hasPair =
       d.latitude !== undefined && d.longitude !== undefined;
     const clear = d.clearLocation === true;
     const hasEnv =
       d.airConditioning !== undefined || d.windowAspect !== undefined;
-    if (!hasTz && !hasPair && !clear && !hasEnv) {
+    if (!hasName && !hasTz && !hasPair && !clear && !hasEnv) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "no_fields",
@@ -58,6 +60,7 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
       where: { id: req.userId! },
       select: {
         id: true,
+        displayName: true,
         timezone: true,
         latitude: true,
         longitude: true,
@@ -78,6 +81,7 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
     }
     const p = parsed.data;
     const data: Prisma.UserUpdateInput = {};
+    if (p.displayName !== undefined) data.displayName = p.displayName;
     if (p.timezone !== undefined) data.timezone = p.timezone;
     if (p.airConditioning !== undefined) data.airConditioning = p.airConditioning;
     if (p.windowAspect !== undefined) data.windowAspect = p.windowAspect;
@@ -103,6 +107,7 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
       data,
       select: {
         id: true,
+        displayName: true,
         timezone: true,
         latitude: true,
         longitude: true,

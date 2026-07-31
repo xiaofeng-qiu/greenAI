@@ -10,8 +10,9 @@
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:mock": "tsx prisma/seed-mock.ts",
+    "db:seed:demo": "tsx prisma/seed-mock.ts",
     "gen:boot-sound": "tsx scripts/genBootSound.ts"
   },
   "prisma": {

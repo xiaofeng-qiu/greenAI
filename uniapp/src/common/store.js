@@ -1,6 +1,17 @@
 import { reactive } from "vue";
-import { API_BASE_URL } from "../utils/config";
+import { getApiBase } from "../utils/config";
 import { clearToken, getToken, request, setToken } from "../utils/request";
+import {
+  evaluateSensorAlerts,
+  notifyNewSensorAlerts,
+} from "../utils/sensorAlerts.js";
+
+const DEVICE_KEY_STORAGE_KEY = "greenai_h5_device_key";
+const LEGACY_GUEST_KEY_STORAGE_KEY = "greenai_guest_key";
+const LEGACY_LOGGED_OUT_STORAGE_KEY = "greenai_guest_logged_out";
+const AUTH_VERSION_STORAGE_KEY = "greenai_auth_version";
+const AUTH_VERSION = "h5-device-v2";
+let authInFlight = null;
 
 function clampPercent(value, fallback = 50) {
   const n = Number(value);
@@ -16,9 +27,14 @@ function lightFromLux(lux) {
 
 function nutritionFromPh(phEvaluation) {
   if (!phEvaluation || phEvaluation.status === "unknown") return 60;
-  if (phEvaluation.status === "ok") return 82;
-  if (phEvaluation.status === "low" || phEvaluation.status === "high") return 45;
-  return 30;
+  if (phEvaluation.status === "optimal" || phEvaluation.status === "ok") return 82;
+  if (
+    phEvaluation.status === "too_acidic" ||
+    phEvaluation.status === "too_alkaline" ||
+    phEvaluation.status === "low" ||
+    phEvaluation.status === "high"
+  ) return 45;
+  return 60;
 }
 
 function computeStatus(water, nutrition) {
@@ -65,13 +81,14 @@ export const plantStore = reactive({
   weather: null,
   forecast: null,
   devices: [],
+  sensorAlerts: [],
   knowledgeArticles: [],
   loading: false,
   error: "",
 });
 
 async function requestRaw(path, method = "GET", data = undefined) {
-  const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
   const token = getToken();
   return new Promise((resolve, reject) => {
     uni.request({
@@ -96,27 +113,88 @@ async function requestRaw(path, method = "GET", data = undefined) {
   });
 }
 
-export async function ensureAuth() {
-  const token = getToken();
-  if (token) {
-    try {
-      await request({ path: "/users/me" });
-      return true;
-    } catch {
-      // Token may be from another database/environment.
+function migrateDeviceStorage() {
+  if (uni.getStorageSync(AUTH_VERSION_STORAGE_KEY) !== AUTH_VERSION) {
+    const currentKey = String(uni.getStorageSync(DEVICE_KEY_STORAGE_KEY) || "");
+    const legacyKey = String(uni.getStorageSync(LEGACY_GUEST_KEY_STORAGE_KEY) || "");
+    if (!currentKey && legacyKey) {
+      uni.setStorageSync(DEVICE_KEY_STORAGE_KEY, legacyKey);
+    } else if (!currentKey) {
       clearToken();
     }
+    uni.removeStorageSync(LEGACY_GUEST_KEY_STORAGE_KEY);
+    uni.removeStorageSync(LEGACY_LOGGED_OUT_STORAGE_KEY);
+    uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
   }
+}
+
+export function getH5DeviceKey() {
+  migrateDeviceStorage();
+  return String(uni.getStorageSync(DEVICE_KEY_STORAGE_KEY) || "");
+}
+
+export function logoutDeviceUser() {
+  clearToken();
+}
+
+export async function peekDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  if (!deviceKey) return null;
   try {
-    const payload = await requestRaw("/auth/dev", "POST", {});
-    if (payload && payload.token) {
-      setToken(payload.token);
-      return true;
-    }
-  } catch {
-    // ignore
+    const payload = await requestRaw("/auth/h5/device/peek", "POST", { deviceKey });
+    return payload?.user || null;
+  } catch (error) {
+    if (error?.statusCode === 404) return null;
+    throw error;
   }
-  return false;
+}
+
+export async function loginDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  if (!deviceKey) throw new Error("device_key_missing");
+  const payload = await requestRaw("/auth/h5/device/login", "POST", { deviceKey });
+  if (!payload?.token) throw new Error("device_login_failed");
+  setToken(payload.token);
+  return payload;
+}
+
+export async function registerDeviceUser() {
+  const deviceKey = getH5DeviceKey();
+  const payload = await requestRaw(
+    "/auth/h5/device/register",
+    "POST",
+    deviceKey ? { deviceKey } : {}
+  );
+  if (!payload?.token || !payload?.deviceKey) {
+    throw new Error("device_register_failed");
+  }
+  uni.setStorageSync(DEVICE_KEY_STORAGE_KEY, payload.deviceKey);
+  uni.setStorageSync(AUTH_VERSION_STORAGE_KEY, AUTH_VERSION);
+  setToken(payload.token);
+  return payload;
+}
+
+async function ensureAuthOnce() {
+  migrateDeviceStorage();
+  const token = getToken();
+  if (!token) return false;
+  try {
+    await request({ path: "/users/me" });
+    return true;
+  } catch {
+    clearToken();
+    return false;
+  }
+}
+
+export async function ensureAuth() {
+  if (authInFlight) return authInFlight;
+  authInFlight = ensureAuthOnce();
+  try {
+    return await authInFlight;
+  } finally {
+    authInFlight = null;
+  }
 }
 
 async function loadSensorSeries(plantId) {
@@ -127,16 +205,41 @@ async function loadSensorSeries(plantId) {
   }
 }
 
+export async function fetchPlantSensorSeries(plantId) {
+  const authed = await ensureAuth();
+  if (!authed) return null;
+  return loadSensorSeries(plantId);
+}
+
 function normalizePlant(plant, sensorSeries, todayTasks) {
   const latest = sensorSeries?.latest || null;
   const water = clampPercent(latest?.soilMoisture, 55);
   const light = lightFromLux(latest?.lux);
   const nutrition = nutritionFromPh(sensorSeries?.phEvaluation);
-  const status = computeStatus(water, nutrition);
+  const name = plant.nickname || plant.speciesLabel || "未命名植物";
+  const sensorAlerts = evaluateSensorAlerts({
+    plantId: plant.id,
+    plantName: name,
+    latest,
+    phEvaluation: sensorSeries?.phEvaluation,
+    hasDevices: Boolean(sensorSeries?.devices?.length),
+  });
+  const sensorSeverity = sensorAlerts.some((item) => item.severity === "danger")
+    ? "danger"
+    : sensorAlerts.length
+      ? "warning"
+      : "good";
+  const careStatus = computeStatus(water, nutrition);
+  const status =
+    careStatus === "danger" || sensorSeverity === "danger"
+      ? "danger"
+      : careStatus === "warning" || sensorSeverity === "warning"
+        ? "warning"
+        : "good";
   const newestTask = todayTasks.find((t) => t.plantId === plant.id);
   return {
     id: plant.id,
-    name: plant.nickname || plant.speciesLabel || "未命名植物",
+    name,
     emoji: emojiBySpecies(plant.speciesLabel),
     location: locationLabel(plant),
     water,
@@ -146,7 +249,31 @@ function normalizePlant(plant, sensorSeries, todayTasks) {
     lastCare: relDate(newestTask?.dueDate || plant.updatedAt || plant.createdAt),
     raw: plant,
     sensor: latest,
+    sensorAlerts,
+    phEvaluation: sensorSeries?.phEvaluation || null,
   };
+}
+
+function syncSensorAlerts() {
+  const alerts = plantStore.plants.flatMap((plant) => plant.sensorAlerts || []);
+  plantStore.sensorAlerts = alerts;
+  notifyNewSensorAlerts(alerts);
+}
+
+export async function refreshPlantSensors() {
+  const rawPlants = plantStore.plants
+    .map((plant) => plant.raw)
+    .filter(Boolean);
+  if (!rawPlants.length) return plantStore.plants;
+
+  const sensorSeriesList = await Promise.all(
+    rawPlants.map((plant) => loadSensorSeries(plant.id))
+  );
+  plantStore.plants = rawPlants.map((plant, index) =>
+    normalizePlant(plant, sensorSeriesList[index], plantStore.todayTasks)
+  );
+  syncSensorAlerts();
+  return plantStore.plants;
 }
 
 export async function loadDashboardData() {
@@ -169,6 +296,7 @@ export async function loadDashboardData() {
     plantStore.plants = (Array.isArray(plants) ? plants : []).map((p, index) =>
       normalizePlant(p, sensorSeriesList[index], plantStore.todayTasks)
     );
+    syncSensorAlerts();
 
     try {
       plantStore.weather = await request({ path: "/weather/current" });
@@ -188,9 +316,11 @@ export async function loadDashboardData() {
     } catch {
       plantStore.devices = [];
     }
+    return true;
   } catch (err) {
     plantStore.error = err?.message || "加载失败";
     plantStore.plants = [];
+    return false;
   } finally {
     plantStore.loading = false;
   }

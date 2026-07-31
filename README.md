@@ -19,6 +19,10 @@
 |---|---|---|
 | GET | `/health` | 健康检查 |
 | POST | `/auth/wechat` | 微信 `jscode2session` 登录，返回 JWT |
+| POST | `/auth/h5/device/peek` | 查询当前浏览器绑定的 H5 用户 |
+| POST | `/auth/h5/device/login` | 使用本机设备密钥一键登录 |
+| POST | `/auth/h5/device/register` | 创建用户并绑定当前浏览器 |
+| POST | `/auth/guest` | 兼容旧版 H5 访客认证 |
 | GET | `/users/me` | 获取/创建当前用户 |
 | PATCH | `/users/me` | 更新时区、经纬度 |
 | GET | `/plants` | 用户植物列表 |
@@ -90,26 +94,16 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build
 
 API 默认监听 `http://localhost:3000`。
 
-### Mock 数据库（与生产数据库隔离）
+### 演示数据
 
-本仓库提供独立的 `mock` 数据库容器，和默认数据库在账号、库名、端口、数据卷上完全隔离：
-
-- 生产/默认开发库：`localhost:5432`，`greenai`
-- Mock 库：`localhost:15432`，`greenai_mock`
-
-启动 mock 库：
+本地与生产环境统一使用 `DATABASE_URL` 指向的主数据库，不再维护独立 Mock 数据库。需要联调数据时，可将演示用户、植物、任务、设备和传感器读数幂等写入当前主库：
 
 ```bash
-docker compose up -d db_mock
+cd backend
+npm run db:seed:demo
 ```
 
-连接串（示例）：
-
-```env
-DATABASE_URL_MOCK=postgresql://greenai_mock:greenai_mock@localhost:15432/greenai_mock
-```
-
-如需让后端连接 mock 库，启动前把 `DATABASE_URL` 临时切换为该值即可（或在单独 `.env.mock` 中维护）。
+运行前请确认 `DATABASE_URL` 指向目标数据库；该命令会保留已有数据，并按固定 ID 更新演示数据。
 
 ### 3. 本地开发启动后端
 
@@ -131,7 +125,20 @@ npm run dev:h5
 
 浏览器打开 `http://localhost:5173` 即可（API 地址自动取 `window.location.hostname:3000`）。
 
-### 5. 运行测试
+### 5. 运行 Sensor Simulator
+
+Sensor Simulator 是独立开发工具，不包含在 uni-app 客户端中。先在后端环境设置
+`ENABLE_DEV_SENSOR_SIMULATOR=1`，然后从仓库根目录运行：
+
+```bash
+npm install --prefix tools/sensor-simulator
+npm run dev:sensor-simulator
+```
+
+浏览器打开 `http://localhost:5174`。开发服务器会将 `/dev/sensor-simulator/*`
+代理到 `http://127.0.0.1:3000`。生产环境必须关闭该后端开关。
+
+### 6. 运行测试
 
 ```bash
 cd backend
@@ -201,6 +208,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build a
 | `POSTGRES_PASSWORD` | ✅ | Compose 部署时 Postgres 密码 |
 | `CRON_HMAC_SECRET` | ✅ | 内部任务 HMAC 签名密钥 |
 | `SENSOR_HMAC_SECRET` | 否 | 传感器读数与设备日志 ingest 共用 HMAC 密钥（不设则 `/internal/sensors/ingest` 与 `/internal/sensors/logs` 返回 503，融合退化为原路线）|
+| `ENABLE_DEV_SENSOR_SIMULATOR` | 否 | 仅本地开发使用；设为 `1` 开放登录用户的模拟设备绑定与传感器写入接口，生产环境必须保持 `0`（默认） |
 | `SUBSCRIBE_TEMPLATE_ID` | ✅ | 微信订阅消息模板 ID |
 | `PORT` | 否 | API 监听端口（默认 3000） |
 | `BAIDU_API_KEY` | 否 | 百度 AI 植物识别（需同时填 `BAIDU_SECRET_KEY`） |
@@ -221,6 +229,7 @@ GitHub Actions 每个 push 自动执行（`.github/workflows/ci.yml`）：
 - **Backend**：TypeScript 编译 + 单元测试（PostgreSQL service container）
 - **Docker Compose**：Compose 文件配置校验
 - **Miniprogram JSON**：小程序 JSON 配置文件完整性校验
+- **Sensor Simulator**：独立 Vite 应用依赖安装与生产构建
 
 ## 技术栈
 

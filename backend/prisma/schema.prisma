@@ -131,6 +131,9 @@ model User {
 
   openid    String   @unique
 
+  /// H5 用户可编辑的展示名称
+  displayName String?
+
   timezone  String   @default("Asia/Shanghai")
 
   latitude  Float?

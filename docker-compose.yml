@@ -9,16 +9,5 @@ services:
       - "5432:5432"
     volumes:
       - greenai_pg:/var/lib/postgresql/data
-  db_mock:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: greenai_mock
-      POSTGRES_PASSWORD: greenai_mock
-      POSTGRES_DB: greenai_mock
-    ports:
-      - "15432:5432"
-    volumes:
-      - greenai_mock_pg:/var/lib/postgresql/data
 volumes:
   greenai_pg: {}
-  greenai_mock_pg: {}

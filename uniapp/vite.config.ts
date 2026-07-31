@@ -10,6 +10,7 @@ export default defineConfig({
       "/auth": { target: "http://127.0.0.1:3000", changeOrigin: true },
       "/users": { target: "http://127.0.0.1:3000", changeOrigin: true },
       "/devices": { target: "http://127.0.0.1:3000", changeOrigin: true },
+      "/dev": { target: "http://127.0.0.1:3000", changeOrigin: true },
       "/plants": { target: "http://127.0.0.1:3000", changeOrigin: true },
       "/soil": { target: "http://127.0.0.1:3000", changeOrigin: true },
       "/diagnose": { target: "http://127.0.0.1:3000", changeOrigin: true },

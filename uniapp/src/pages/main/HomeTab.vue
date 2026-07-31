@@ -130,6 +130,7 @@ const emit = defineEmits(["openPlant", "openTool", "openCare"]);
 const plants = computed(() => plantStore.plants);
 const todayTasks = computed(() => plantStore.todayTasks || []);
 const needsAttention = computed(() => plants.value.filter((p) => p.status !== "good"));
+const sensorAlerts = computed(() => plantStore.sensorAlerts || []);
 
 const weather = computed(() => plantStore.weather || {});
 const forecastDays = computed(() => {
@@ -194,11 +195,19 @@ async function onSkip(id) {
   }
 }
 
-const alertText = computed(() =>
-  needsAttention.value
-    .map((p) => (p.status === "danger" ? `${p.name}严重缺水` : `${p.name}营养不足`))
-    .join("，") + "，请及时养护。"
-);
+const alertText = computed(() => {
+  if (sensorAlerts.value.length) {
+    return sensorAlerts.value
+      .slice(0, 3)
+      .map((item) => `${item.plantName}：${item.message}`)
+      .join("；");
+  }
+  return (
+    needsAttention.value
+      .map((p) => (p.status === "danger" ? `${p.name}严重缺水` : `${p.name}需要关注`))
+      .join("，") + "，请及时养护。"
+  );
+});
 
 function statusColor(p) {
   if (p.status === "good") return G;
